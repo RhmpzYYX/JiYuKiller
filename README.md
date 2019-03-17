@@ -25,7 +25,7 @@ QQ：1501076885
 软件主要界面和操作方法
 ---
 
-![Image text](https://raw.githubusercontent.com/717021/JiYuKiller/master/hrlp.jpg)
+![Image text](https://raw.githubusercontent.com/717021/JiYuKiller/master/help.jpg)
 
 1. 极域进程操作面板，分为：杀死清除、挂起、取消挂起、重新运行程序四个操作。如果已加载驱动并启用“严格模式”，程序将会在内核进行操作（威力更强）。
 2. 程序运行状态输出区域，其中可能有一些非常有用的出错信息。
