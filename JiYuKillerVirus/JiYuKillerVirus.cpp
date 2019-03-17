@@ -452,7 +452,7 @@ HANDLE WINAPI hkCreateFileW(LPCWSTR lpFileName, DWORD dwDesiredAccess,  DWORD dw
 }
 HHOOK WINAPI hkSetWindowsHookExA(int idHook, HOOKPROC lpfn, HINSTANCE hmod, DWORD dwThreadId)
 {
-	if (idHook == WH_MOUSE_LL || idHook == WH_MOUSE) {
+	if (idHook == WH_CBT || idHook == WH_MOUSE_LL || idHook == WH_MOUSE) {
 		SetLastError(ERROR_ACCESS_DENIED);
 		return FALSE;
 	}

@@ -319,8 +319,7 @@ bool FixJIYuWindow(HWND hWnd, LPWSTR name) {
 	SetWindowLong(hWnd, GWL_STYLE, GetWindowLong(hWnd, GWL_STYLE) | WS_OVERLAPPEDWINDOW);
 	ForceUnTopWindow(hWnd);
 
-	if(StrEqual(name, L"BlackScreen Window")) SetWindowPos(NULL, HWND_BOTTOM, screenWidth / 2 - screenWidth / 4, screenHeight / 2 - screenHeight / 4, screenWidth / 2, screenHeight / 2, SWP_DRAWFRAME | SWP_NOACTIVATE);
-	else SetWindowPos(NULL, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_DRAWFRAME | SWP_NOACTIVATE);
+	SetWindowPos(hWnd, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_DRAWFRAME | SWP_NOACTIVATE);
 
 	return 1;
 }
