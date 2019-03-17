@@ -1,5 +1,7 @@
 # JiYuKiller
 极域电子教室 杀手 防控制软件
+
+
 [![Language](https://img.shields.io/badge/language-C++-blue.svg)](JiYuKiller)
 [![Version](https://img.shields.io/badge/version-1.0-green.svg)](JiYuKiller)
 [![Liscence](https://img.shields.io/badge/liscence-MIT-green.svg)](JiYuKiller)
