@@ -6,6 +6,8 @@
 #define IDC_STATUS_TEXT                 1001
 #define IDC_STATUS_LIST                 1002
 #define IDC_KILL                        1003
+#define IDC_SMINSIZE                    1004
+#define IDC_SHIDE                       1005
 
 // Next default values for new objects
 // 

@@ -21,6 +21,8 @@ bool VIsInIllegalWindows(HWND hWnd);
 bool VIsInIllegalWindowsSetCansize(HWND hWnd);
 void VBoom();
 
+bool VCheckIsTargetWindow(LPWSTR text);
+
 void VInstallHooks();
 void VUnInstallHooks();
 
@@ -30,6 +32,7 @@ void VCloseFuckDrivers();
 
 INT_PTR CALLBACK MainWndProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK JiYuWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+INT_PTR CALLBACK JiYuTDDeskWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
 typedef BOOL (WINAPI *fnSetForegroundWindow)(HWND hWnd);
 typedef BOOL (WINAPI *fnSetWindowPos)(HWND hWnd, HWND hWndInsertAfter, int X, int Y, int cx, int cy, UINT uFlags);
@@ -92,6 +95,14 @@ typedef HDESK (WINAPI  *fnOpenInputDesktop)(
 	__in BOOL fInherit,
 	__in ACCESS_MASK dwDesiredAccess);
 typedef HRESULT(__cdecl *fnTDDeskCreateInstance)(CLSID *rclsid, LPUNKNOWN pUnkOuter, DWORD dwClsContext, IID *riid, LPVOID *ppv);
+typedef LONG (WINAPI  *fnSetWindowLongA)(
+	__in HWND hWnd,
+	__in int nIndex,
+	__in LONG dwNewLong);
+typedef LONG (WINAPI  *fnSetWindowLongW)(
+	__in HWND hWnd,
+	__in int nIndex,
+	__in LONG dwNewLong);
 
 //Hooks
 
@@ -156,6 +167,14 @@ HDESK WINAPI hkOpenInputDesktop(
 	__in DWORD dwFlags,
 	__in BOOL fInherit,
 	__in ACCESS_MASK dwDesiredAccess);
+LONG WINAPI hkSetWindowLongA(
+	__in HWND hWnd,
+	__in int nIndex,
+	__in LONG dwNewLong);
+LONG WINAPI hkSetWindowLongW(
+	__in HWND hWnd,
+	__in int nIndex,
+	__in LONG dwNewLong);
 
 HRESULT __cdecl hkTDDeskCreateInstance(CLSID *rclsid, LPUNKNOWN pUnkOuter, DWORD dwClsContext, IID *riid, LPVOID *ppv);
 

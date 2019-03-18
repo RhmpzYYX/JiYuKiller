@@ -33,6 +33,7 @@ bool FixJIYuWindow(HWND hWnd, LPWSTR name);
 bool CheckIsJIYuWindow(HWND hWnd, LPDWORD outPid = NULL, LPDWORD outTid = NULL);
 HWND TryGetJIYuFullscreenWindow();
 void RunTopWindowCheckWk();
+bool CheckIsTargetWindow(LPWSTR text);
 BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam);
 void FuckWindow(HWND hWnd, LPWSTR name);
 

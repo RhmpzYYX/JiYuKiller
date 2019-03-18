@@ -20,6 +20,7 @@ using namespace std;
 extern HINSTANCE hInst;
 
 WNDPROC jiYuWndProc;
+WNDPROC jiYuTDDeskWndProc;
 list<tag_WNDIJJ>  jiYuWnds;
 HWND jiYuGBWnd = NULL;
 HWND jiYuGBDeskRdWnd = NULL;
@@ -101,7 +102,7 @@ void VHookFWindow(const wchar_t* hWndStr) {
 		if (hWnd != jiYuGBWnd) {
 			WCHAR text[16];
 			GetWindowText(hWnd, text, 16);
-			if (wcscmp(text, L"屏幕广播") == 0) {
+			if (StrEqual(text, L"屏幕广播") || StrEqual(text, L"屏幕演播室窗口")) {
 				VFixGuangBoWindow(hWnd);
 				jiYuGBWnd = hWnd;
 			}
@@ -131,7 +132,7 @@ void VHookWindow(const wchar_t* hWndStr) {
 		if (hWnd != jiYuGBWnd) {
 			WCHAR text[16];
 			GetWindowText(hWnd, text, 16);
-			if (wcscmp(text, L"屏幕广播") == 0) {
+			if (StrEqual(text, L"屏幕广播") || StrEqual(text, L"屏幕演播室窗口")) {
 				VFixGuangBoWindow(hWnd);
 				jiYuGBWnd = hWnd;
 			}
@@ -154,10 +155,11 @@ void VHookWindow(const wchar_t* hWndStr) {
 void VFixGuangBoWindow(HWND hWnd) {
 	WNDPROC oldWndProc = (WNDPROC)GetWindowLong(hWnd, GWL_WNDPROC);
 	if (oldWndProc != (WNDPROC)JiYuWndProc && oldWndProc != (WNDPROC)MainWndProc && jiYuWndProc != oldWndProc) {
-		oldWndProc = (WNDPROC)JiYuWndProc;
+		jiYuWndProc = (WNDPROC)oldWndProc;
 		SetWindowLong(hWnd, GWL_WNDPROC, (LONG)JiYuWndProc);
 		VOutPutStatus(L"Hooked hWnd %d (0x%08x) WNDPROC", hWnd, hWnd);
 	}
+	SendMessage(hWnd, WM_SIZE, 0, 0);
 }
 bool VIsInIllegalWindowsCanSize(HWND hWnd, bool setTo) {
 	list<tag_WNDIJJ>::iterator testiterator;
@@ -195,12 +197,17 @@ void VBoom() {
 	CHAR*P = 0;
 	*P = 0;
 }
+bool VCheckIsTargetWindow(LPWSTR text) {
+	return (StrEqual(text, L"屏幕广播") || StrEqual(text, L"屏幕演播室窗口")
+		|| StrEqual(text, L"BlackScreen Window"));
+}
 
 INT_PTR CALLBACK MainWndProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	switch (message)
 	{
 	case WM_INITDIALOG: {
+		SetWindowText(hDlg, L"JY Killer Virus");
 		//SetTimer(hDlg, TIMER_WATCH_DOG_SRV, 10000,	NULL);
 		break;	
 	}
@@ -218,6 +225,13 @@ INT_PTR CALLBACK MainWndProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPar
 			PostQuitMessage(0);
 			ExitProcess(0);
 		}
+		if (wParam == IDC_SMINSIZE) {
+			ShowWindow(hDlg, SW_MINIMIZE);
+		}		
+		if (wParam == IDC_SHIDE) {
+			RECT rc; GetWindowRect(hDlg, &rc);
+			SetWindowPos(hDlg, 0, rc.left, -56, 0, 0, SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOSIZE);
+		}		
 		break;
 	}
 	case WM_COPYDATA: {
@@ -227,6 +241,17 @@ INT_PTR CALLBACK MainWndProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPar
 			WCHAR recvData[256] = { 0 };
 			wcsncpy_s(recvData, (WCHAR *)pCopyDataStruct->lpData, pCopyDataStruct->cbData);
 			VHandleMsg(recvData);
+		}
+		break;
+	}
+	case WM_LBUTTONDOWN: {
+		RECT rc; GetWindowRect(hDlg, &rc);
+		if (rc.top == -56) {
+			SetWindowPos(hDlg, 0, rc.left, 0, 0, 0, SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOSIZE);
+		}
+		else {
+			ReleaseCapture();
+			SendMessage(hDlg, WM_NCLBUTTONDOWN, HTCAPTION, 0);
 		}
 		break;
 	}
@@ -257,23 +282,49 @@ INT_PTR CALLBACK JiYuWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPar
 		bool setToFull = false;
 		if (rcWindow.right - rcWindow.left == screenWidth && rcWindow.bottom - rcWindow.top == screenHeight)
 			setToFull = true;
-		if (jiYuGBDeskRdWnd == NULL) 
+		if (jiYuGBDeskRdWnd == NULL) {
 			jiYuGBDeskRdWnd = FindWindowExW(hWnd, NULL, NULL, L"TDDesk Render Window");
+			//HOOK TDDesk Render Window for WM_SIZE
+			WNDPROC oldWndProc = (WNDPROC)GetWindowLong(jiYuGBDeskRdWnd, GWL_WNDPROC);
+			if (oldWndProc != (WNDPROC)jiYuTDDeskWndProc && oldWndProc != (WNDPROC)JiYuTDDeskWndProc) {
+				jiYuTDDeskWndProc = (WNDPROC)oldWndProc;
+				SetWindowLong(jiYuGBDeskRdWnd, GWL_WNDPROC, (LONG)JiYuTDDeskWndProc);
+				VOutPutStatus(L"Hooked jiYuGBDeskRdWnd %d (0x%08x) WNDPROC", jiYuGBDeskRdWnd, jiYuGBDeskRdWnd);
+			}
+		}
 		if (!IsWindow(jiYuGBDeskRdWnd) || GetParent(jiYuGBDeskRdWnd) != hWnd)
 			jiYuGBDeskRdWnd = NULL;
 		if (jiYuGBDeskRdWnd != NULL)
-			if(setToFull)MoveWindow(jiYuGBDeskRdWnd, 0, 0, screenWidth, screenHeight, TRUE);
-			else MoveWindow(jiYuGBDeskRdWnd, 0, 0, rcClient.right - rcClient.left, rcClient.bottom - rcClient.top, TRUE);
+			if(setToFull) MoveWindow(jiYuGBDeskRdWnd, 0, 0, screenWidth, screenHeight, TRUE);
+			else {
+				SendMessage(jiYuGBDeskRdWnd, WM_SIZE, 0, MAKELPARAM(10, 10));
+				//MoveWindow(jiYuGBDeskRdWnd, 0, 0, rcClient.right - rcClient.left, rcClient.bottom - rcClient.top, TRUE);
+			}
 	}
 
 	if (jiYuWndProc) return jiYuWndProc(hWnd, message, wParam, lParam);
+	else return DefWindowProc(hWnd, message, wParam, lParam);
+}
+INT_PTR CALLBACK JiYuTDDeskWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	if (message == WM_SIZE) {
+		RECT rcParent;
+		GetClientRect(GetParent(hWnd), &rcParent);
+		int w = LOWORD(lParam), h = HIWORD(lParam) ,
+			rw = rcParent.right - rcParent.left, rh = rcParent.bottom - rcParent.top;
+		if (w !=rw || h != rh) {
+			MoveWindow(hWnd, 0, 0, rw, rh, TRUE);
+		}
+	}
+	if (jiYuTDDeskWndProc) return jiYuTDDeskWndProc(hWnd, message, wParam, lParam);
 	else return DefWindowProc(hWnd, message, wParam, lParam);
 }
 
 BOOL hk1 = 0, hk2 = 0, hk3 = 0, hk4 = 0,
 hk5 = 0, hk6 = 0, hk7 = 0, hk8 = 0,
 hk9 = 0, hk10 = 0, hk11 = 0, hk12 = 0,
-hk13 = 0, hk14 = 0, hk15 = 0, hk16 = 0;
+hk13 = 0, hk14 = 0, hk15 = 0, hk16 = 0,
+hk17 = 0, hk18 = 0, hk19= 0, hk20 = 0;
 
 //Real api address
 
@@ -292,6 +343,8 @@ fnChangeDisplaySettingsW faChangeDisplaySettingsW = NULL;
 fnOpenDesktopA faOpenDesktopA = NULL;
 fnOpenInputDesktop faOpenInputDesktop = NULL;
 fnTDDeskCreateInstance faTDDeskCreateInstance = NULL;
+fnSetWindowLongA faSetWindowLongA = NULL;
+fnSetWindowLongW faSetWindowLongW = NULL;
 
 void VInstallHooks() {
 
@@ -310,6 +363,8 @@ void VInstallHooks() {
 	faChangeDisplaySettingsW = (fnChangeDisplaySettingsW)GetProcAddress(hUser32, "ChangeDisplaySettingsW");
 	faOpenDesktopA = (fnOpenDesktopA)GetProcAddress(hUser32, "OpenDesktopA");
 	faOpenInputDesktop = (fnOpenInputDesktop)GetProcAddress(hUser32, "OpenInputDesktop");
+	faSetWindowLongA = (fnSetWindowLongA)GetProcAddress(hUser32, "SetWindowLongA");
+	faSetWindowLongW = (fnSetWindowLongW)GetProcAddress(hUser32, "SetWindowLongW");
 
 	raDeviceIoControl = (fnDeviceIoControl)GetProcAddress(hKernel32, "DeviceIoControl");
 	faCreateFileA = (fnCreateFileA)GetProcAddress(hKernel32, "CreateFileA");
@@ -338,6 +393,8 @@ void VInstallHooks() {
 	if(faTDDeskCreateInstance) 
 		hk15 = Mhook_SetHook((PVOID*)&faTDDeskCreateInstance, hkTDDeskCreateInstance);
 
+	hk16 = Mhook_SetHook((PVOID*)&faSetWindowLongA, hkSetWindowLongA);
+	hk17 = Mhook_SetHook((PVOID*)&faSetWindowLongW, hkSetWindowLongW);
 }
 void VUnInstallHooks() {
 
@@ -356,6 +413,10 @@ void VUnInstallHooks() {
 	if (hk13) Mhook_Unhook((PVOID*)&faOpenDesktopA);
 	if (hk14) Mhook_Unhook((PVOID*)&faOpenInputDesktop);
 	if (hk15) Mhook_Unhook((PVOID*)&faTDDeskCreateInstance);
+	if (hk16) Mhook_Unhook((PVOID*)&faSetWindowLongA);
+	if (hk17) Mhook_Unhook((PVOID*)&faSetWindowLongW);
+
+
 }
 
 //Fuck driver devices
@@ -385,7 +446,7 @@ BOOL WINAPI hkSetWindowPos(HWND hWnd, HWND hWndInsertAfter, int x, int y, int cx
 		{
 			WCHAR text[32];
 			GetWindowText(hWnd, text, 32);
-			if (wcscmp(text, L"屏幕广播") == 0 || wcscmp(text, L"BlackScreen Window") == 0)
+			if (VCheckIsTargetWindow(text))
 			{
 				ShowWindow(hWnd, SW_MINIMIZE);
 				Sleep(100);
@@ -404,7 +465,7 @@ BOOL WINAPI hkMoveWindow(HWND hWnd, int x, int y, int cx, int cy, BOOL bRepaint)
 	if (x == 0 && y == 0 && cx == screenWidth && cx == screenHeight) {
 		WCHAR text[32];
 		GetWindowText(hWnd, text, 32);
-		if (wcscmp(text, L"屏幕广播") == 0 || wcscmp(text, L"BlackScreen Window") == 0)
+		if (VCheckIsTargetWindow(text))
 		{
 			ShowWindow(hWnd, SW_MINIMIZE);
 			Sleep(100);
@@ -412,7 +473,9 @@ BOOL WINAPI hkMoveWindow(HWND hWnd, int x, int y, int cx, int cy, BOOL bRepaint)
 		}
 		return TRUE;
 	}
-	return raMoveWindow(hWnd, x, y, cx, cy, bRepaint);
+	if (VIsInIllegalWindows(hWnd)) 
+		return TRUE;
+	else return raMoveWindow(hWnd, x, y, cx, cy, bRepaint);
 }
 BOOL WINAPI hkBlockInput(BOOL fBlockIt) {
 	if (fBlockIt) return TRUE;
@@ -487,3 +550,18 @@ HRESULT __cdecl hkTDDeskCreateInstance(CLSID *rclsid, LPUNKNOWN pUnkOuter, DWORD
 {
 	return E_FAIL;
 }
+LONG WINAPI hkSetWindowLongA(HWND hWnd, int nIndex, LONG dwNewLong)
+{
+	if (VIsInIllegalWindows(hWnd))
+		return GetWindowLongA(hWnd, nIndex);
+	return faSetWindowLongA(hWnd, nIndex, dwNewLong);
+}
+LONG WINAPI hkSetWindowLongW(HWND hWnd, int nIndex, LONG dwNewLong)
+{
+	if (VIsInIllegalWindows(hWnd))
+		return GetWindowLongW(hWnd, nIndex);
+	return faSetWindowLongW(hWnd, nIndex, dwNewLong);
+}
+
+
+

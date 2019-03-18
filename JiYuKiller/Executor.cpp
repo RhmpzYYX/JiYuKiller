@@ -268,6 +268,8 @@ void SuspendThread(DWORD tid) {
 	if (hThread) SuspendThread(hThread);
 }
 
+
+
 void WriteHookHWNDMsg(HWND hWnd) {
 	WCHAR str[65];
 	if(autoFck) swprintf_s(str, L"hwf:%d", (LONG)hWnd);
@@ -275,8 +277,10 @@ void WriteHookHWNDMsg(HWND hWnd) {
 	MsgCenterSendToVirus(str, hWndMain);
 }
 void FuckWindow(HWND hWnd, LPWSTR name) {
+
 	if (hWnd == hWndMain) return;
-	ForceUnTopWindow(hWnd);
+	WriteHookHWNDMsg(hWnd);
+
 	DWORD pid = 0, tid = 0;
 	NTSTATUS status = 0;
 	if (!noMercyMode) {
@@ -308,31 +312,33 @@ void FuckWindow(HWND hWnd, LPWSTR name) {
 }
 void ForceUnTopWindow(HWND hWnd) {
 	LONG oldLong = GetWindowLong(hWnd, GWL_EXSTYLE);
-	if((oldLong & WS_EX_TOPMOST)== WS_EX_TOPMOST)
+	if ((oldLong & WS_EX_TOPMOST) == WS_EX_TOPMOST) {
 		SetWindowLong(hWnd, GWL_EXSTYLE, oldLong^WS_EX_TOPMOST);
-	SetWindowPos(hWnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+		SetWindowPos(hWnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+	}
 }
 bool FixJIYuWindow(HWND hWnd, LPWSTR name) {
 
-	WriteHookHWNDMsg(hWnd);
 	Sleep(50);
 	SetWindowLong(hWnd, GWL_STYLE, GetWindowLong(hWnd, GWL_STYLE) | WS_OVERLAPPEDWINDOW);
 	ForceUnTopWindow(hWnd);
 
-	SetWindowPos(hWnd, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_DRAWFRAME | SWP_NOACTIVATE);
-
-	return 1;
+	return SetWindowPos(hWnd, 0, 0, 0, 0, 0, SWP_NOZORDER |  SWP_NOSIZE | SWP_NOMOVE | SWP_DRAWFRAME | SWP_NOACTIVATE);
 }
-bool CheckIsJIYuWindow(HWND hWnd, LPDWORD outPid , LPDWORD outTid ) {
+bool CheckIsJIYuWindow(HWND hWnd, LPDWORD outPid , LPDWORD outTid) {
 	if (jiyuPid == 0) return false;
 	DWORD pid = 0, tid = GetWindowThreadProcessId(hWnd, &pid);
-	if (outPid) *outPid = pid;	if (outTid) *outTid = tid;
+	if (outPid) *outPid = pid;	
+	if (outTid) *outTid = tid;
 	return pid == jiyuPid;
 }
 HWND TryGetJIYuFullscreenWindow() {
 	HWND hWnd = GetForegroundWindow();
-	if (hWnd != hWndMain && CheckIsJIYuWindow(hWnd)) return hWnd;
-	return NULL;
+	WCHAR text[32];
+	GetWindowText(hWnd, text, 32);
+	if (StrEqual(text, L"JY Killer Virus")) return NULL;
+	if (!CheckIsTargetWindow(text)) return NULL;
+	return hWnd;
 }
 void RunTopWindowCheckWk() {
 	if (jiyuPid != 0) {
@@ -345,14 +351,16 @@ void RunTopWindowCheckWk() {
 		EnumDesktopWindows(hDesktop, EnumWindowsProc, 0);
 	}
 }
+bool CheckIsTargetWindow(LPWSTR text) {
+	return (StrEqual(text, L"ÆÁÄ»¹ã²¥") || StrEqual(text, L"ÆÁÄ»ÑÝ²¥ÊÒ´°¿Ú") || StrEqual(text, L"BlackScreen Window"));
+}
 
 BOOL CALLBACK EnumWindowsProc(HWND hWnd,  LPARAM lParam)
 {
-	if (CheckIsJIYuWindow(hWnd)) {
+	if (IsWindowVisible(hWnd) && CheckIsJIYuWindow(hWnd)) {
 		WCHAR text[32];
 		GetWindowText(hWnd, text, 32);
-		if (StrEqual(text, L"JY Killer Virus"))
-			return TRUE;
+		if (StrEqual(text, L"JY Killer Virus")) return TRUE;
 		if (autoFck) {
 			RECT rc;
 			GetWindowRect(hWnd, &rc);
@@ -362,7 +370,7 @@ BOOL CALLBACK EnumWindowsProc(HWND hWnd,  LPARAM lParam)
 			}
 		}
 		else {
-			if (StrEqual(text, L"ÆÁÄ»¹ã²¥") || StrEqual(text, L"BlackScreen Window")) {
+			if (CheckIsTargetWindow(text)) {
 				//JiYu window
 				FuckWindow(hWnd, text);
 			}
