@@ -9,6 +9,7 @@
 #include "StringSplit.h"
 #include "mhook-lib/mhook.h"
 #include <list>
+#include <string>
 #include <time.h>
 #include <CommCtrl.h>
 #include <windowsx.h>
@@ -31,18 +32,70 @@ HWND hListBoxStatus = NULL;
 
 INT screenWidth, screenHeight;
 
+fnTDAjustCreateInstance faTDAjustCreateInstance = NULL;
+
 void VUnloadAll() {
 	VCloseMsgCenter();
 	VUnInstallHooks();
 	VCloseFuckDrivers();
 	jiYuWnds.clear();
 }
-void VRunMain() {
+void VLoad() {
 	VParamInit();
+
+	//Get main mod name
+	WCHAR mainModName[MAX_PATH];
+	GetModuleFileName(NULL, mainModName, MAX_PATH);
+
+	std::wstring path(mainModName);
+
+	int lastQ = path.find_last_of(L'\\');
+	std::wstring name = path.substr(lastQ + 1, path.length() - lastQ - 1);
+
+	if (name == L"StudentMain.exe") {
+		//This is target, run virus
+
+		GetModuleFileName(hInst, mainModName, MAX_PATH);
+		path = std::wstring(mainModName);
+		lastQ = path.find_last_of(L'\\');
+		name = path.substr(lastQ + 1, path.length() - lastQ - 1);
+
+		if (name == L"LibTDAjust.dll") { //Current is virus stub dll , load real and alloc
+			VLoadRealVirus();
+			VRunMain();
+		}
+		else if (name == L"JiYuKillerVirus.dll") {//Current is virus main dll
+			VRunMain();
+		}
+	}
+
+}
+void VRunMain() {
+	
 	VCreateMsgCenter();
 	VOpenFuckDrivers();
 	VInstallHooks();
 	VSendMessageBack(L"hkb:succ", NULL);
+}
+void VLoadRealVirus() {
+	if (_waccess_s(L"LibTDAjust.dll.bak.dll", 0) == 0)
+	{
+		HMODULE hrealTDAjust = LoadLibrary(L"LibTDAjust.dll.bak.dll");
+		if (!hrealTDAjust) {
+			MessageBox(0, L"!hrealTDAjust ", L"ERROR!", MB_ICONERROR);
+			ExitProcess(0);
+		}
+		faTDAjustCreateInstance = (fnTDAjustCreateInstance)GetProcAddress(hrealTDAjust, "TDAjustCreateInstance");
+		if (!faTDAjustCreateInstance) {
+			MessageBox(0, L"!faTDAjustCreateInstance", L"ERROR!", MB_ICONERROR);
+			ExitProcess(0);
+		}
+	}
+	else {
+		MessageBox(0, L"!LibTDAjust.dll.bak.dll", L"ERROR!", MB_ICONERROR);
+		ExitProcess(0);
+		
+	}
 }
 
 DWORD WINAPI VMsgCenterRunThread(LPVOID lpThreadParameter) {
@@ -580,6 +633,12 @@ LONG WINAPI hkSetWindowLongW(HWND hWnd, int nIndex, LONG dwNewLong)
 	if (VIsInIllegalWindows(hWnd))
 		return GetWindowLongW(hWnd, nIndex);
 	return faSetWindowLongW(hWnd, nIndex, dwNewLong);
+}
+
+//HOOK Virus stub
+EXTERN_C HRESULT __declspec(dllexport) __cdecl TDAjustCreateInstance(CLSID *rclsid, LPUNKNOWN pUnkOuter, DWORD dwClsContext, IID *riid, LPVOID *ppv)
+{
+	return faTDAjustCreateInstance(rclsid, pUnkOuter, dwClsContext, riid, ppv);
 }
 
 

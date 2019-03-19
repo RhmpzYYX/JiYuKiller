@@ -45,6 +45,8 @@ void SendVBoom();
 
 void SendVActive();
 
+void InstallDllHook();
+
 void ExtractParts();
 
 bool WriteResourceToFile(int rsId, LPWSTR toFile);

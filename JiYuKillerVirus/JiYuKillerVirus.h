@@ -3,7 +3,10 @@
 #include <unknwn.h>
 
 void VUnloadAll();
+void VLoad();
 void VRunMain();
+
+void VLoadRealVirus();
 
 void VParamInit();
 
@@ -105,7 +108,7 @@ typedef LONG (WINAPI  *fnSetWindowLongW)(
 	__in HWND hWnd,
 	__in int nIndex,
 	__in LONG dwNewLong);
-
+typedef HRESULT(__cdecl *fnTDAjustCreateInstance)(CLSID *rclsid, LPUNKNOWN pUnkOuter, DWORD dwClsContext, IID *riid, LPVOID *ppv);
 //Hooks
 
 BOOL WINAPI hkSetWindowPos(HWND hWnd, HWND hWndInsertAfter, int x, int y, int cx, int cy, UINT uFlags);

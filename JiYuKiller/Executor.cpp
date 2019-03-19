@@ -422,11 +422,16 @@ void InstallVirus() {
 		{
 			if(InjectDll(virusPath, jiyuPid))
 				OutPutStatus(L"注入病毒成功");
-			else SetCtlFailStatus(L"控制极域失败。注入病毒失败");
+			else {
+				SetCtlFailStatus(L"控制极域失败。注入病毒失败");
+				if (MessageBox(hWndMain, L"注入病毒失败。\n是否使用替换注入模式？", L"错误", MB_YESNO | MB_ICONEXCLAMATION) == IDYES) {
+					InstallDllHook();
+				}
+			}
 		}
 		else {
 			OutPutStatus(L"无法注入病毒，未找到文件");
-			SetCtlFailStatus(L"控制极域失败。无法注入病毒，未找到文件");
+			SetCtlFailStatus(L"控制极域失败。无法注入病毒，未找到病毒文件");
 		}
 	}
 }
@@ -450,12 +455,17 @@ int EnableDebugPriv(const wchar_t * name)
 BOOL InjectDll(const wchar_t *DllFullPath, const DWORD dwRemoteProcessId)
 {
 	HANDLE hRemoteProcess;
-	//打开远程线程
-	hRemoteProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, dwRemoteProcessId);
-	if (!hRemoteProcess || hRemoteProcess == INVALID_HANDLE_VALUE) {
-		if (GetLastError() == ERROR_ACCESS_DENIED) {
-			OutPutStatus(L"无法注入病毒，启动强制结束");	
-			KillSt();
+	//打开进程
+	NTSTATUS ntStatus = MOpenProcessNt(dwRemoteProcessId, &hRemoteProcess);
+	if (!NT_SUCCESS(ntStatus))
+	{
+		if (ntStatus == STATUS_ACCESS_DENIED)
+		{
+			OutPutStatus(L"无法注入病毒 打开进程错误 : 0x%08X", dwRemoteProcessId);
+			if (forceKill || MessageBox(hWndMain, L"无法注入病毒 打开进程错误。\n是否启动强制结束？", L"错误", MB_YESNO | MB_ICONEXCLAMATION)) {
+				OutPutStatus(L"无法注入病毒 启动强制结束");
+				KillSt();
+			}
 		}
 	}
 
@@ -469,8 +479,7 @@ BOOL InjectDll(const wchar_t *DllFullPath, const DWORD dwRemoteProcessId)
 
 	//##############################################################################
 		//计算LoadLibraryA的入口地址
-	PTHREAD_START_ROUTINE pfnStartAddr = (PTHREAD_START_ROUTINE)
-		GetProcAddress(GetModuleHandle(TEXT("Kernel32")), "LoadLibraryW");
+	PTHREAD_START_ROUTINE pfnStartAddr = (PTHREAD_START_ROUTINE) GetProcAddress(GetModuleHandle(TEXT("Kernel32")), "LoadLibraryW");
 	//(关于GetModuleHandle函数和GetProcAddress函数)
 
 	//启动远程线程LoadLibraryW，通过远程线程调用创建新的线程
@@ -478,8 +487,10 @@ BOOL InjectDll(const wchar_t *DllFullPath, const DWORD dwRemoteProcessId)
 	if ((hRemoteThread = CreateRemoteThread(hRemoteProcess, NULL, 0, pfnStartAddr, pszLibFileRemote, 0, NULL)) == NULL)
 	{
 		OutPutStatus(L"注入线程失败!");
-		OutPutStatus(L"无法注入病毒，启动强制结束");
-		KillSt();
+		if (forceKill || MessageBox(hWndMain, L"无法注入病毒 注入线程失败。\n是否启动强制结束？", L"错误", MB_YESNO | MB_ICONEXCLAMATION)) {
+			OutPutStatus(L"无法注入病毒 启动强制结束");
+			KillSt();
+		}
 		return FALSE;
 	}
 	//##############################################################################
@@ -508,6 +519,68 @@ void SendVActive() {
 	WCHAR str[65];
 	swprintf_s(str, L"ssss:0");
 	MsgCenterSendToVirus(str, hWndMain);
+}
+void InstallDllHook() {
+
+	if (!PathFileExists(virusPath))
+	{
+		OutPutStatus(L"病毒源文件未找到，法执行替换");
+		MessageBox(hWndMain, L"病毒源文件未找到，无法执行病毒替换", L"错误", MB_ICONEXCLAMATION);
+		return;
+	}
+
+	//Get base dir
+	if (wcscmp(jiyuPath, L"") == 0)
+	{
+		RECHOOSE:
+		if (!M_DLG_ChooseFileSingal(hWndMain, L"", L"选择 StudentMain.exe 的位置：", L"所有文件\0*.*\0Exe Flie\0*.exe\0\0", L"StudentMain.exe", L".exe", jiyuPath, MAX_PATH))
+			return;
+		if (_waccess_s(jiyuPath, 0) != 0) {
+			if(MessageBox(hWndMain, L"您选择的路径不存在或无法访问，点击重试重新选择", L"错误", MB_RETRYCANCEL) ==IDRETRY)
+				goto RECHOOSE;
+		}
+	}
+
+	//Replace stub
+	WCHAR jiyuDirPath[MAX_PATH];
+	wcscpy_s(jiyuDirPath, jiyuPath);
+	PathRemoveFileSpec(jiyuDirPath);
+
+	WCHAR jiyuTDAPath[MAX_PATH];
+	WCHAR jiyuTDAOPath[MAX_PATH];
+	wcscpy_s(jiyuTDAPath, jiyuDirPath);
+	wcscat_s(jiyuTDAPath, L"\\LibTDAjust.dll");
+	wcscpy_s(jiyuTDAOPath, jiyuDirPath);
+	wcscat_s(jiyuTDAOPath, L"\\LibTDAjust.dll.bak.dll");
+
+	if (!PathFileExists(jiyuTDAPath)) {
+		OutPutStatus(L"目标文件未找到：%s，无法执行替换", jiyuTDAPath);
+		MessageBox(hWndMain, L"目标文件未找到，无法执行病毒替换", L"错误", MB_ICONEXCLAMATION);
+		return;
+	}
+
+	//Copy backup file
+	if (!CopyFile(jiyuTDAPath, jiyuTDAOPath, FALSE)) {
+		OutPutStatus(L"复制备份文件失败：%s，无法执行替换", jiyuTDAOPath);
+		MessageBox(hWndMain, L"复制备份文件失败，无法执行病毒替换", L"错误", MB_ICONEXCLAMATION);
+		return;
+	}
+
+	//Delete old
+	if (!DeleteFile(jiyuTDAPath))
+	{
+		OutPutStatus(L"删除源目标失败：%s，无法执行替换", jiyuTDAPath);
+		MessageBox(hWndMain, L"删除源目标失败，无法执行病毒替换", L"错误", MB_ICONEXCLAMATION);
+		return;
+	}
+
+	//Copy to new
+	if (!CopyFile(virusPath, jiyuTDAPath, FALSE)) {
+		OutPutStatus(L"复制病毒到目标文件失败：%s，无法执行替换", jiyuTDAOPath);
+		MessageBox(hWndMain, L"复制病毒到目标文件失败，无法执行病毒替换", L"错误", MB_ICONEXCLAMATION);
+		return;
+	}
+
 }
 
 //Extract Parts

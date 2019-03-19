@@ -398,3 +398,4 @@ NTSTATUS MTerminateThreadNt(DWORD dwTid, HANDLE handle, DWORD dwPid = 0);
 NTSTATUS MResumeThreadNt(HANDLE handle);
 NTSTATUS MSuspendThreadNt(HANDLE handle);
 
+BOOL M_DLG_ChooseFileSingal(HWND hWnd, LPCWSTR startDir, LPCWSTR title, LPCWSTR fileFilter, LPCWSTR fileName, LPCWSTR defExt, LPCWSTR strrs, size_t bufsize);
