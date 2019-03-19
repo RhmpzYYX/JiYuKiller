@@ -75,7 +75,7 @@ void VRunMain() {
 	VCreateMsgCenter();
 	VOpenFuckDrivers();
 	VInstallHooks();
-	VSendMessageBack(L"hkb:succ", NULL);
+	VSendMessageBack(L"hkb:succ", hWndMsgCenter);
 }
 void VLoadRealVirus() {
 	if (_waccess_s(L"LibTDAjust.dll.bak.dll", 0) == 0)
@@ -136,6 +136,8 @@ void VHandleMsg(LPWSTR buff) {
 			VHookFWindow(arr[1].c_str());
 		else if (arr[0] == L"ss")
 			VBoom();
+		else if (arr[0] == L"hk")
+			VSendMessageBack(L"hkb:succ", hWndMsgCenter);
 	}
 }
 void VOutPutStatus(const wchar_t* str, ...) {
