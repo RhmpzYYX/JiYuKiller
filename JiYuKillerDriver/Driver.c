@@ -5,11 +5,6 @@
 #define DEVICE_LINK_NAME L"\\??\\JKRK"
 #define DEVICE_OBJECT_NAME  L"\\Device\\JKRK"
 
-extern POBJECT_TYPE* IoDriverObjectType;   //用于调用ObReferenceObjectByName API时,获取Kbdclass驱动对象指针,所带入的[对象类型]
-										   //由于是指针,所以带入时,为：*IoDriverObjectType;
-PDRIVER_OBJECT gTagDriverObj = NULL;       //目标[驱动对象]
-PDRIVER_DISPATCH YuanReadFunc = NULL;      //原目标[驱动对象]的函数指针
-
 ULONG gIrpCount = 0;
 
 strcat_s_ _strcat_s;
@@ -57,17 +52,6 @@ NTSTATUS DriverEntry(IN PDRIVER_OBJECT pDriverObject, IN PUNICODE_STRING pRegPat
 	pDriverObject->MajorFunction[IRP_MJ_DEVICE_CONTROL] = IOControlDispatch;
 	pDriverObject->MajorFunction[IRP_MJ_CREATE] = CreateDispatch;
 
-	//取目标驱动对象
-	ntStatus = OpenTagDevice(KBD_DRIVER_NAME);
-	if (!NT_SUCCESS(ntStatus)) {
-		KdPrint(("Couldn't Open Tag Device\n"));
-		return ntStatus;
-	}
-
-	//指针变量
-	volatile PVOID TagFunc = gTagDriverObj->MajorFunction + IRP_MJ_READ;
-	YuanReadFunc = InterlockedExchangePointer(TagFunc, Read);
-
 	//创建驱动设备对象	
 	RtlInitUnicodeString(&DeviceLinkName, DEVICE_LINK_NAME);
 	ntStatus = IoCreateSymbolicLink(&DeviceLinkName, &DeviceObjectName);
@@ -87,21 +71,6 @@ VOID DriverUnload(_In_ struct _DRIVER_OBJECT *pDriverObject)
 	UNICODE_STRING  DeviceLinkName;
 	PDEVICE_OBJECT  v1 = NULL;
 	PDEVICE_OBJECT  DeleteDeviceObject = NULL;
-
-	//由于卸载时,一般有一个未完成的IRP请求,当这个IRP完成时,会执行c2pReadComplete完成例程,但完成例程不存在了
-	//导致蓝屏,所以要等待这个IRP完成,然后卸载.
-	volatile PVOID TagFunc = gTagDriverObj->MajorFunction + IRP_MJ_READ;
-	InterlockedExchangePointer(TagFunc, YuanReadFunc);
-
-	//将32位扩展至64位变量中.
-	LARGE_INTEGER lDelay = RtlConvertLongToLargeInteger(10 * DELAY_ONE_MILLISECOND); //1毫秒 × 100 = 100毫秒,1000毫秒才等于1秒
-	//得到不公开的线程结构体指针
-	PRKTHREAD CurrentThread = KeGetCurrentThread();
-	//把当前线程设置为[低实时模式],以便让它的运行尽量少影响其他程序  16 （0~31）
-	KeSetPriorityThread(CurrentThread, LOW_REALTIME_PRIORITY);
-	//等待IRP完成,就要用一个变量记录是否无IRP数量了.
-	while (gIrpCount)
-		KeDelayExecutionThread(KernelMode, FALSE, &lDelay);
 
 	RtlInitUnicodeString(&DeviceLinkName, DEVICE_LINK_NAME);
 	IoDeleteSymbolicLink(&DeviceLinkName);
@@ -236,7 +205,6 @@ NTSTATUS IOControlDispatch(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
 		break;
 	}
 
-	COMPLETE:
 	Irp->IoStatus.Status = Status; //Ring3 GetLastError();
 	Irp->IoStatus.Information = Informaiton;
 	IoCompleteRequest(Irp, IO_NO_INCREMENT);  //将Irp返回给Io管理器
@@ -290,19 +258,6 @@ VOID LoadFunctions()
 
 	PspTerminateThreadByPointer = (PspTerminateThreadByPointer_)KxGetPspTerminateThreadByPointerAddressX_7Or8Or10(0x50);
 	PspExitThread = (PspExitThread_)KxGetPspExitThread_32_64();
-}
-NTSTATUS OpenTagDevice(wchar_t* DriObj)
-{
-	NTSTATUS status;
-	UNICODE_STRING DriName;
-	RtlInitUnicodeString(&DriName, DriObj);
-	PDRIVER_OBJECT TagDri;
-	status = ObReferenceObjectByName(&DriName, OBJ_CASE_INSENSITIVE, NULL, 0, *IoDriverObjectType, KernelMode, NULL, &TagDri);
-	if (!NT_SUCCESS(status))
-		return status;
-	ObDereferenceObject(TagDri);
-	gTagDriverObj = TagDri;
-	return status;
 }
 
 NTSTATUS ZeroKill(ULONG_PTR PID)   //X32  X64
@@ -400,48 +355,4 @@ VOID CompuleShutdown(void)
 	fcrb = (FCRB)ExAllocatePool(NonPagedPool, sizeof(shellcode));
 	memcpy(fcrb, shellcode, sizeof(shellcode));
 	fcrb();
-}
-
-//ReadFile处理函数
-NTSTATUS Read(PDEVICE_OBJECT pDevObj, PIRP pIrp)
-{
-	gIrpCount++;
-	PIO_STACK_LOCATION IrpSp = IoGetCurrentIrpStackLocation(pIrp);
-	//IrpSp->Context = 这个是自定义参数
-	IrpSp->Control = SL_INVOKE_ON_SUCCESS | SL_INVOKE_ON_ERROR | SL_INVOKE_ON_CANCEL;
-	IrpSp->CompletionRoutine = (PIO_COMPLETION_ROUTINE)c2pReadComplete;
-	return YuanReadFunc(pDevObj, pIrp);
-}
-//读IRP完成例程
-NTSTATUS c2pReadComplete
-(
-	IN PDEVICE_OBJECT DeviceObject,     //目标设备对象
-	IN PIRP Irp,                        //IRP指针
-	IN PVOID Context                    //该自定义参数为：过滤设备对象
-)
-{
-	PIO_STACK_LOCATION IrpSp;           //I/O堆栈指针
-	ULONG_PTR buf_len = 0;
-	PKEYBOARD_INPUT_DATA buf = NULL;
-	size_t i;
-	//获取当前I/O堆栈指针
-	IrpSp = IoGetCurrentIrpStackLocation(Irp);
-	//如果IRP请求是成功的
-	if (NT_SUCCESS(Irp->IoStatus.Status))
-	{
-		//得到扫描码缓冲区
-		buf = Irp->AssociatedIrp.SystemBuffer;
-		buf_len = Irp->IoStatus.Information;
-		ULONG_PTR aaKeyCount = buf_len / sizeof(KEYBOARD_INPUT_DATA);
-		for (ULONG_PTR i = 0; i < aaKeyCount; i++)
-		{
-			DbgPrint("键盘码:%02x\n", buf->MakeCode);
-			buf++;
-		}
-	}
-	if (Irp->PendingReturned)
-		IoMarkIrpPending(Irp);
-	//IRP总数-- 
-	gIrpCount--;
-	return Irp->IoStatus.Status;
 }
