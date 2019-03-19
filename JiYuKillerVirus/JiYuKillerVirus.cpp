@@ -14,6 +14,7 @@
 #include <windowsx.h>
 
 #define TIMER_WATCH_DOG_SRV 10011
+#define TIMER_AUTO_HIDE 10012
 
 using namespace std;
 
@@ -41,6 +42,7 @@ void VRunMain() {
 	VCreateMsgCenter();
 	VOpenFuckDrivers();
 	VInstallHooks();
+	VSendMessageBack(L"hkb:succ", NULL);
 }
 
 DWORD WINAPI VMsgCenterRunThread(LPVOID lpThreadParameter) {
@@ -201,6 +203,15 @@ bool VCheckIsTargetWindow(LPWSTR text) {
 	return (StrEqual(text, L"屏幕广播") || StrEqual(text, L"屏幕演播室窗口")
 		|| StrEqual(text, L"BlackScreen Window"));
 }
+void VSendMessageBack(LPCWSTR buff, HWND hDlg) {
+	HWND receiveWindow = FindWindow(NULL, L"JY Killer");
+	if (receiveWindow) {
+		COPYDATASTRUCT copyData = { 0 };
+		copyData.lpData = (PVOID)buff;
+		copyData.cbData = sizeof(WCHAR) * (wcslen(buff) + 1);
+		SendMessageTimeout(receiveWindow, WM_COPYDATA, (WPARAM)hDlg, (LPARAM)&copyData, SMTO_NORMAL, 500, 0);
+	}
+}
 
 INT_PTR CALLBACK MainWndProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
@@ -209,6 +220,7 @@ INT_PTR CALLBACK MainWndProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPar
 	case WM_INITDIALOG: {
 		SetWindowText(hDlg, L"JY Killer Virus");
 		//SetTimer(hDlg, TIMER_WATCH_DOG_SRV, 10000,	NULL);
+		SetTimer(hDlg, TIMER_AUTO_HIDE, 5000, NULL);
 		break;	
 	}
 	case WM_DESTROY: {
@@ -252,6 +264,13 @@ INT_PTR CALLBACK MainWndProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPar
 		else {
 			ReleaseCapture();
 			SendMessage(hDlg, WM_NCLBUTTONDOWN, HTCAPTION, 0);
+		}
+		break;
+	}
+	case WM_TIMER: {
+		if (wParam == TIMER_AUTO_HIDE) {
+			KillTimer(hDlg, TIMER_AUTO_HIDE);
+			SendMessage(hDlg, WM_COMMAND, IDC_SHIDE, NULL);
 		}
 		break;
 	}

@@ -11,6 +11,7 @@
 #include <Psapi.h>
 #include <tlhelp32.h>
 #include <WinIoCtl.h>
+#include <list>
 
 extern HINSTANCE hInst;
 extern HANDLE hKDrv;
@@ -29,6 +30,8 @@ extern HWND hWndMain;
 extern int screenWidth;
 extern int screenHeight;
 
+std::list<HWND> jiyuWnds;
+bool lastHasGb = false, lastHasHp = false;
 
 bool TryFindStudent(DWORD* outPid)
 {
@@ -268,13 +271,31 @@ void SuspendThread(DWORD tid) {
 	if (hThread) SuspendThread(hThread);
 }
 
-
-
+bool IsInIllegalWindows(HWND hWnd) {
+	std::list<HWND>::iterator testiterator;
+	for (testiterator = jiyuWnds.begin(); testiterator != jiyuWnds.end(); ++testiterator)
+	{
+		if ((*testiterator)== hWnd)
+			return true;
+	}
+	return false;
+}
 void WriteHookHWNDMsg(HWND hWnd) {
-	WCHAR str[65];
-	if(autoFck) swprintf_s(str, L"hwf:%d", (LONG)hWnd);
-	else swprintf_s(str, L"hw:%d", (LONG)hWnd);
-	MsgCenterSendToVirus(str, hWndMain);
+	if(!IsInIllegalWindows(hWnd)) jiyuWnds.push_back(hWnd);
+}
+void SendHookHWNDMsg() {
+	int iwndCount = jiyuWnds.size();
+	std::list<HWND>::iterator testiterator;
+	for (testiterator = jiyuWnds.begin(); testiterator != jiyuWnds.end(); ++testiterator)
+	{
+		HWND hWnd = (*testiterator);
+		WCHAR str[65];
+		if (autoFck) swprintf_s(str, L"hwf:%d", (LONG)hWnd);
+		else swprintf_s(str, L"hw:%d", (LONG)hWnd);
+		MsgCenterSendToVirus(str, hWndMain);
+	}
+	jiyuWnds.clear();
+	ResetGBStatus(iwndCount, lastHasGb, lastHasHp);
 }
 void FuckWindow(HWND hWnd, LPWSTR name) {
 
@@ -341,6 +362,7 @@ HWND TryGetJIYuFullscreenWindow() {
 	return hWnd;
 }
 void RunTopWindowCheckWk() {
+	lastHasGb = false, lastHasHp = false;
 	if (jiyuPid != 0) {
 		HWND hWnd = TryGetJIYuFullscreenWindow();
 		if (hWnd) {
@@ -349,10 +371,20 @@ void RunTopWindowCheckWk() {
 			FuckWindow(hWnd, text);
 		}
 		EnumDesktopWindows(hDesktop, EnumWindowsProc, 0);
+		SendHookHWNDMsg();
 	}
 }
 bool CheckIsTargetWindow(LPWSTR text) {
-	return (StrEqual(text, L"屏幕广播") || StrEqual(text, L"屏幕演播室窗口") || StrEqual(text, L"BlackScreen Window"));
+	bool b = false;
+	if (StrEqual(text, L"屏幕广播") || StrEqual(text, L"屏幕演播室窗口")) {
+		b = true;
+		lastHasGb = true;
+	}
+	if (StrEqual(text, L"BlackScreen Window")) {
+		b = true;
+		lastHasHp = true;
+	}
+	return b;
 }
 
 BOOL CALLBACK EnumWindowsProc(HWND hWnd,  LPARAM lParam)
@@ -390,8 +422,12 @@ void InstallVirus() {
 		{
 			if(InjectDll(virusPath, jiyuPid))
 				OutPutStatus(L"注入病毒成功");
+			else SetCtlFailStatus(L"控制极域失败。注入病毒失败");
 		}
-		else OutPutStatus(L"无法注入病毒，未找到文件");
+		else {
+			OutPutStatus(L"无法注入病毒，未找到文件");
+			SetCtlFailStatus(L"控制极域失败。无法注入病毒，未找到文件");
+		}
 	}
 }
 int EnableDebugPriv(const wchar_t * name)

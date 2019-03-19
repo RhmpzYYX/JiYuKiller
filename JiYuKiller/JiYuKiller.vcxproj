@@ -181,6 +181,11 @@
     <ResourceCompile Include="JiYuKiller.rc" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="..\..\..\..\图片\编程素材\icoFail.bmp" />
+    <Image Include="..\..\..\..\图片\编程素材\icoGreen.bmp" />
+    <Image Include="..\..\..\..\图片\编程素材\icoGrey.bmp" />
+    <Image Include="..\..\..\..\图片\编程素材\icoOk.bmp" />
+    <Image Include="..\..\..\..\图片\编程素材\icoRed.bmp" />
     <Image Include="JiYuKiller.ico" />
     <Image Include="small.ico" />
   </ItemGroup>

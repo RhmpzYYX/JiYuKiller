@@ -84,6 +84,21 @@
     <Image Include="JiYuKiller.ico">
       <Filter>资源文件</Filter>
     </Image>
+    <Image Include="..\..\..\..\图片\编程素材\icoFail.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="..\..\..\..\图片\编程素材\icoGreen.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="..\..\..\..\图片\编程素材\icoOk.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="..\..\..\..\图片\编程素材\icoRed.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="..\..\..\..\图片\编程素材\icoGrey.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\Release\JiYuKillerDriver.sys" />
