@@ -34,11 +34,17 @@ INT screenWidth, screenHeight;
 
 fnTDAjustCreateInstance faTDAjustCreateInstance = NULL;
 
+bool loaded = false;
+
 void VUnloadAll() {
-	VCloseMsgCenter();
-	VUnInstallHooks();
-	VCloseFuckDrivers();
-	jiYuWnds.clear();
+	if (loaded)
+	{
+		VCloseMsgCenter();
+		VCloseFuckDrivers();
+		jiYuWnds.clear();
+		VUnInstallHooks();
+		loaded = false;
+	}
 }
 void VLoad() {
 	VParamInit();
@@ -69,6 +75,7 @@ void VLoad() {
 		}
 	}
 
+	loaded = true;
 }
 void VRunMain() {
 	
@@ -136,8 +143,10 @@ void VHandleMsg(LPWSTR buff) {
 			VHookFWindow(arr[1].c_str());
 		else if (arr[0] == L"ss")
 			VBoom();
-		else if (arr[0] == L"hk")
-			VSendMessageBack(L"hkb:succ", hWndMsgCenter);
+		else if (arr[0] == L"hk") {
+			if(arr[1]==L"ckstat") VSendMessageBack(L"hkb:succ", hWndMsgCenter);
+			else if (arr[1] == L"ckend") VManualQuit();
+		}
 	}
 }
 void VOutPutStatus(const wchar_t* str, ...) {
@@ -266,6 +275,13 @@ void VSendMessageBack(LPCWSTR buff, HWND hDlg) {
 		copyData.cbData = sizeof(WCHAR) * (wcslen(buff) + 1);
 		SendMessageTimeout(receiveWindow, WM_COPYDATA, (WPARAM)hDlg, (LPARAM)&copyData, SMTO_NORMAL, 500, 0);
 	}
+}
+void VManualQuit()
+{
+	VCloseFuckDrivers();
+	VCloseMsgCenter();
+	jiYuWnds.clear();
+	loaded = false;
 }
 
 INT_PTR CALLBACK MainWndProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
@@ -405,14 +421,12 @@ hk17 = 0, hk18 = 0, hk19= 0, hk20 = 0;
 fnSetWindowPos raSetWindowPos = NULL;
 fnMoveWindow raMoveWindow = NULL;
 fnSetForegroundWindow raSetForegroundWindow = NULL;
-fnBlockInput raBlockInput = NULL;
 fnDeviceIoControl raDeviceIoControl = NULL;
 fnCreateFileA faCreateFileA = NULL;
 fnCreateFileW faCreateFileW = NULL;
 fnSetWindowsHookExA faSetWindowsHookExA = NULL;
 fnmouse_event famouse_event = NULL;
 fnSendInput faSendInput = NULL;
-fnSetThreadDesktop faSetThreadDesktop = NULL;
 fnChangeDisplaySettingsW faChangeDisplaySettingsW = NULL;
 fnOpenDesktopA faOpenDesktopA = NULL;
 fnOpenInputDesktop faOpenInputDesktop = NULL;
@@ -429,11 +443,9 @@ void VInstallHooks() {
 	raSetWindowPos = (fnSetWindowPos)GetProcAddress(hUser32, "SetWindowPos");
 	raMoveWindow = (fnMoveWindow)GetProcAddress(hUser32, "MoveWindow");
 	raSetForegroundWindow = (fnSetForegroundWindow)GetProcAddress(hUser32, "SetForegroundWindow");
-	raBlockInput = (fnBlockInput)GetProcAddress(hUser32, "BlockInput");
 	faSetWindowsHookExA = (fnSetWindowsHookExA)GetProcAddress(hUser32, "SetWindowsHookExA");
 	famouse_event = (fnmouse_event)GetProcAddress(hUser32, "mouse_event");
 	faSendInput = (fnSendInput)GetProcAddress(hUser32, "SendInput");
-	faSetThreadDesktop = (fnSetThreadDesktop)GetProcAddress(hUser32, "SetThreadDesktop");
 	faChangeDisplaySettingsW = (fnChangeDisplaySettingsW)GetProcAddress(hUser32, "ChangeDisplaySettingsW");
 	faOpenDesktopA = (fnOpenDesktopA)GetProcAddress(hUser32, "OpenDesktopA");
 	faOpenInputDesktop = (fnOpenInputDesktop)GetProcAddress(hUser32, "OpenInputDesktop");
@@ -452,20 +464,20 @@ void VInstallHooks() {
 	hk1 = Mhook_SetHook((PVOID*)&raSetWindowPos, hkSetWindowPos);
 	hk2 = Mhook_SetHook((PVOID*)&raMoveWindow, hkMoveWindow);
 	hk3 = Mhook_SetHook((PVOID*)&raSetForegroundWindow, hkSetForegroundWindow);
-	hk4 = Mhook_SetHook((PVOID*)&raBlockInput, hkBlockInput);
+	//hk4 = 
 	hk5 = Mhook_SetHook((PVOID*)&raDeviceIoControl, hkDeviceIoControl);
 	hk6 = Mhook_SetHook((PVOID*)&faCreateFileA, hkCreateFileA);
 	hk7 = Mhook_SetHook((PVOID*)&faCreateFileW, hkCreateFileW);
 	hk8 = Mhook_SetHook((PVOID*)&faSetWindowsHookExA, hkSetWindowsHookExA);
-	hk9 = Mhook_SetHook((PVOID*)&famouse_event, hkmouse_event);
+	//hk9 = Mhook_SetHook((PVOID*)&famouse_event, hkmouse_event);
 	hk10 = Mhook_SetHook((PVOID*)&faSendInput, hkSendInput);
-	hk11 = Mhook_SetHook((PVOID*)&faSetThreadDesktop, hkSetThreadDesktop);
-	hk12 = Mhook_SetHook((PVOID*)&faChangeDisplaySettingsW, hkChangeDisplaySettingsW);
-	hk13 = Mhook_SetHook((PVOID*)&faOpenDesktopA, hkOpenDesktopA);
-	hk14 = Mhook_SetHook((PVOID*)&faOpenInputDesktop, hkOpenInputDesktop);
+	//hk11 = Mhook_SetHook((PVOID*)&faSetThreadDesktop, hkSetThreadDesktop);
+	//hk12 = Mhook_SetHook((PVOID*)&faChangeDisplaySettingsW, hkChangeDisplaySettingsW);
+	//hk13 = Mhook_SetHook((PVOID*)&faOpenDesktopA, hkOpenDesktopA);
+	//hk14 = Mhook_SetHook((PVOID*)&faOpenInputDesktop, hkOpenInputDesktop);
 
-	if(faTDDeskCreateInstance) 
-		hk15 = Mhook_SetHook((PVOID*)&faTDDeskCreateInstance, hkTDDeskCreateInstance);
+	//if(faTDDeskCreateInstance) 
+	//	hk15 = Mhook_SetHook((PVOID*)&faTDDeskCreateInstance, hkTDDeskCreateInstance);
 
 	hk16 = Mhook_SetHook((PVOID*)&faSetWindowLongA, hkSetWindowLongA);
 	hk17 = Mhook_SetHook((PVOID*)&faSetWindowLongW, hkSetWindowLongW);
@@ -475,18 +487,18 @@ void VUnInstallHooks() {
 	if (hk1) Mhook_Unhook((PVOID*)&raSetWindowPos);
 	if (hk2) Mhook_Unhook((PVOID*)&raMoveWindow);
 	if (hk3) Mhook_Unhook((PVOID*)&raSetForegroundWindow);
-	if (hk4) Mhook_Unhook((PVOID*)&raBlockInput);
+	//if (hk4) Mhook_Unhook((PVOID*)&);
 	if (hk5) Mhook_Unhook((PVOID*)&raDeviceIoControl);
 	if (hk6) Mhook_Unhook((PVOID*)&faCreateFileA);
 	if (hk7) Mhook_Unhook((PVOID*)&faCreateFileW);
 	if (hk8) Mhook_Unhook((PVOID*)&faSetWindowsHookExA);
-	if (hk9) Mhook_Unhook((PVOID*)&famouse_event);
+	//if (hk9) Mhook_Unhook((PVOID*)&famouse_event);
 	if (hk10) Mhook_Unhook((PVOID*)&faSendInput);
-	if (hk11) Mhook_Unhook((PVOID*)&faSetThreadDesktop);
-	if (hk12) Mhook_Unhook((PVOID*)&faChangeDisplaySettingsW);
-	if (hk13) Mhook_Unhook((PVOID*)&faOpenDesktopA);
-	if (hk14) Mhook_Unhook((PVOID*)&faOpenInputDesktop);
-	if (hk15) Mhook_Unhook((PVOID*)&faTDDeskCreateInstance);
+	//if (hk11) Mhook_Unhook((PVOID*)&faSetThreadDesktop);
+	//if (hk12) Mhook_Unhook((PVOID*)&faChangeDisplaySettingsW);
+	//if (hk13) Mhook_Unhook((PVOID*)&faOpenDesktopA);
+	//if (hk14) Mhook_Unhook((PVOID*)&faOpenInputDesktop);
+	//if (hk15) Mhook_Unhook((PVOID*)&faTDDeskCreateInstance);
 	if (hk16) Mhook_Unhook((PVOID*)&faSetWindowLongA);
 	if (hk17) Mhook_Unhook((PVOID*)&faSetWindowLongW);
 
@@ -508,16 +520,41 @@ void VCloseFuckDrivers()
 
 BOOL WINAPI hkSetForegroundWindow(HWND hWnd)
 {
-	if (VIsInIllegalWindows(hWnd)) 
+	if (loaded && VIsInIllegalWindows(hWnd))
 		return TRUE;
 	return raSetForegroundWindow(hWnd);
 }
 BOOL WINAPI hkSetWindowPos(HWND hWnd, HWND hWndInsertAfter, int x, int y, int cx, int cy, UINT uFlags)
 {
-	if (x == 0 && y == 0 && cx == screenWidth && cy == screenHeight)
+	if (loaded) 
 	{
-		if (VIsInIllegalWindowsCanSize(hWnd, false)) 
+		if (x == 0 && y == 0 && cx == screenWidth && cy == screenHeight)
 		{
+			if (VIsInIllegalWindowsCanSize(hWnd, false))
+			{
+				WCHAR text[32];
+				GetWindowText(hWnd, text, 32);
+				if (VCheckIsTargetWindow(text))
+				{
+					ShowWindow(hWnd, SW_MINIMIZE);
+					Sleep(100);
+					ShowWindow(hWnd, SW_NORMAL);
+				}
+				return raSetWindowPos(hWnd, HWND_BOTTOM, x, y, cx, cy, SWP_NOACTIVATE | SWP_NOSENDCHANGING);
+			}
+			else return raSetWindowPos(hWnd, HWND_BOTTOM, x, y, cx, cy, uFlags);
+		}
+		if (VIsInIllegalWindows(hWnd)) {
+			return TRUE;
+		}
+	}
+	return raSetWindowPos(hWnd, hWndInsertAfter, x, y, cx, cy, uFlags);
+}
+BOOL WINAPI hkMoveWindow(HWND hWnd, int x, int y, int cx, int cy, BOOL bRepaint)
+{
+	if (loaded)
+	{
+		if (x == 0 && y == 0 && cx == screenWidth && cx == screenHeight) {
 			WCHAR text[32];
 			GetWindowText(hWnd, text, 32);
 			if (VCheckIsTargetWindow(text))
@@ -525,35 +562,13 @@ BOOL WINAPI hkSetWindowPos(HWND hWnd, HWND hWndInsertAfter, int x, int y, int cx
 				ShowWindow(hWnd, SW_MINIMIZE);
 				Sleep(100);
 				ShowWindow(hWnd, SW_NORMAL);
+
+				return TRUE;
 			}
-			return raSetWindowPos(hWnd, HWND_BOTTOM, x, y, cx, cy, SWP_NOACTIVATE | SWP_NOSENDCHANGING);
 		}
-	}
-	if(VIsInIllegalWindows(hWnd)) {
-		return TRUE;
-	}
-	return raSetWindowPos(hWnd, HWND_BOTTOM, x, y, cx, cy, uFlags^SWP_NOACTIVATE);
-}
-BOOL WINAPI hkMoveWindow(HWND hWnd, int x, int y, int cx, int cy, BOOL bRepaint)
-{
-	if (x == 0 && y == 0 && cx == screenWidth && cx == screenHeight) {
-		WCHAR text[32];
-		GetWindowText(hWnd, text, 32);
-		if (VCheckIsTargetWindow(text))
-		{
-			ShowWindow(hWnd, SW_MINIMIZE);
-			Sleep(100);
-			ShowWindow(hWnd, SW_NORMAL);
-		}
-		return TRUE;
-	}
-	if (VIsInIllegalWindows(hWnd)) 
-		return TRUE;
-	else return raMoveWindow(hWnd, x, y, cx, cy, bRepaint);
-}
-BOOL WINAPI hkBlockInput(BOOL fBlockIt) {
-	if (fBlockIt) return TRUE;
-	return raBlockInput(fBlockIt);
+		if (VIsInIllegalWindows(hWnd))
+			return TRUE;
+	} return raMoveWindow(hWnd, x, y, cx, cy, bRepaint);
 }
 BOOL WINAPI hkDeviceIoControl(HANDLE hDevice, DWORD dwIoControlCode, LPVOID lpInBuffer, DWORD nInBufferSize, LPVOID lpOutBuffer, DWORD nOutBufferSize, LPDWORD lpBytesReturned,  LPOVERLAPPED lpOverlapped) {
 	if (hDeviceTDKeybd) {
@@ -565,33 +580,41 @@ BOOL WINAPI hkDeviceIoControl(HANDLE hDevice, DWORD dwIoControlCode, LPVOID lpIn
 	return raDeviceIoControl(hDevice, dwIoControlCode, lpInBuffer, nInBufferSize, lpOutBuffer, nOutBufferSize, lpBytesReturned, lpOverlapped);
 }
 HANDLE WINAPI hkCreateFileA(LPCSTR lpFileName,  DWORD dwDesiredAccess, DWORD dwShareMode, LPSECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile ) {
-	if (StringHlp::StrEqualA(lpFileName, "\\\\.\\TDKeybd")) {
-		SetLastError(ERROR_ACCESS_DENIED);
-		return INVALID_HANDLE_VALUE;
-	}	
-	if (StringHlp::StrEqualA(lpFileName, "\\\\.\\TDVideo")) {
-		SetLastError(ERROR_ACCESS_DENIED);
-		return INVALID_HANDLE_VALUE;
+	if (loaded)
+	{
+		if (StringHlp::StrEqualA(lpFileName, "\\\\.\\TDKeybd")) {
+			SetLastError(ERROR_ACCESS_DENIED);
+			return INVALID_HANDLE_VALUE;
+		}
+		if (StringHlp::StrEqualA(lpFileName, "\\\\.\\TDVideo")) {
+			SetLastError(ERROR_ACCESS_DENIED);
+			return INVALID_HANDLE_VALUE;
+		}
 	}
-	
 	return faCreateFileA(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
 }
 HANDLE WINAPI hkCreateFileW(LPCWSTR lpFileName, DWORD dwDesiredAccess,  DWORD dwShareMode, LPSECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile) {
-	if (StringHlp::StrEqualW(lpFileName, L"\\\\.\\TDKeybd")) {
-		SetLastError(ERROR_ACCESS_DENIED);
-		return INVALID_HANDLE_VALUE;
-	}
-	if (StringHlp::StrEqualW(lpFileName, L"\\\\.\\TDVideo")) {
-		SetLastError(ERROR_ACCESS_DENIED);
-		return INVALID_HANDLE_VALUE;
+	if (loaded)
+	{
+		if (StringHlp::StrEqualW(lpFileName, L"\\\\.\\TDKeybd")) {
+			SetLastError(ERROR_ACCESS_DENIED);
+			return INVALID_HANDLE_VALUE;
+		}
+		if (StringHlp::StrEqualW(lpFileName, L"\\\\.\\TDVideo")) {
+			SetLastError(ERROR_ACCESS_DENIED);
+			return INVALID_HANDLE_VALUE;
+		}
 	}
 	return faCreateFileW(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
 }
 HHOOK WINAPI hkSetWindowsHookExA(int idHook, HOOKPROC lpfn, HINSTANCE hmod, DWORD dwThreadId)
 {
-	if (idHook == WH_CBT || idHook == WH_MOUSE_LL || idHook == WH_MOUSE) {
-		SetLastError(ERROR_ACCESS_DENIED);
-		return FALSE;
+	if (loaded)
+	{
+		if (idHook == WH_CBT || idHook == WH_MOUSE_LL || idHook == WH_MOUSE) {
+			SetLastError(ERROR_ACCESS_DENIED);
+			return FALSE;
+		}
 	}
 	return faSetWindowsHookExA(idHook, lpfn, hmod, dwThreadId);
 }
@@ -599,13 +622,13 @@ VOID WINAPI hkmouse_event(DWORD dwFlags, DWORD dx, DWORD dy, DWORD dwData,  ULON
 {
 	
 }
-UINT WINAPI hkSendInput(UINT cInputs,  LPINPUT pInputs,  int cbSize)
+UINT WINAPI hkSendInput(UINT cInputs, LPINPUT pInputs, int cbSize)
 {
-	return cInputs;
+	if (loaded)
+		return cInputs;
+	return faSendInput(cInputs, pInputs, cbSize);
 }
-BOOL WINAPI hkSetThreadDesktop(HDESK hDesktop) {
-	return FALSE;
-}
+
 LONG WINAPI hkChangeDisplaySettingsW(DEVMODEW* lpDevMode, DWORD dwFlags)
 {
 	return DISP_CHANGE_SUCCESSFUL;
@@ -626,13 +649,13 @@ HRESULT __cdecl hkTDDeskCreateInstance(CLSID *rclsid, LPUNKNOWN pUnkOuter, DWORD
 }
 LONG WINAPI hkSetWindowLongA(HWND hWnd, int nIndex, LONG dwNewLong)
 {
-	if (VIsInIllegalWindows(hWnd))
+	if (loaded && VIsInIllegalWindows(hWnd))
 		return GetWindowLongA(hWnd, nIndex);
 	return faSetWindowLongA(hWnd, nIndex, dwNewLong);
 }
 LONG WINAPI hkSetWindowLongW(HWND hWnd, int nIndex, LONG dwNewLong)
 {
-	if (VIsInIllegalWindows(hWnd))
+	if (loaded && VIsInIllegalWindows(hWnd))
 		return GetWindowLongW(hWnd, nIndex);
 	return faSetWindowLongW(hWnd, nIndex, dwNewLong);
 }

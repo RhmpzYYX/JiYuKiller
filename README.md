@@ -29,7 +29,7 @@ QQ：1501076885
 ---
 在默认情况下，您不需要更改任何参数，直接右键以管理员身份运行本软件并最小化即可，本软件会自动进行操作。
 
-![软件主要界面](https://images.imyzc.com/https://images.imyzc.com/7daf751bcd11f19df6ff449e82657574.jpg.jpg)
+![软件主要界面](https://images.imyzc.com/7daf751bcd11f19df6ff449e82657574.jpg)
 
 软件高级操作方法说明
 ---

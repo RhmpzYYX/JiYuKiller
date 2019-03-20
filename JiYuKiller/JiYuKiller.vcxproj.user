@@ -3,8 +3,15 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <RemoteDebuggerCommand>C:\Users\a\Desktop\JiYuKiller.exe</RemoteDebuggerCommand>
     <RemoteDebuggerServerName>192.168.11.136</RemoteDebuggerServerName>
-    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+    <DebuggerFlavor>WindowsRemoteDebugger</DebuggerFlavor>
     <RemoteDebuggerWorkingDirectory>C:\Users\a\Desktop\</RemoteDebuggerWorkingDirectory>
     <RemoteDebuggerConnection>RemoteWithoutAuthentication</RemoteDebuggerConnection>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <DebuggerFlavor>WindowsRemoteDebugger</DebuggerFlavor>
+    <RemoteDebuggerCommand>C:\Program Files\Mythware\极域课堂管理系统软件V6.0 2016 豪华版\StudentMain.exe</RemoteDebuggerCommand>
+    <RemoteDebuggerConnection>RemoteWithoutAuthentication</RemoteDebuggerConnection>
+    <RemoteDebuggerServerName>192.168.11.136</RemoteDebuggerServerName>
+    <RemoteDebuggerWorkingDirectory>C:\Program Files\Mythware\极域课堂管理系统软件V6.0 2016 豪华版\</RemoteDebuggerWorkingDirectory>
   </PropertyGroup>
 </Project>

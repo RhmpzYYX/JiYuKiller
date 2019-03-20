@@ -28,6 +28,8 @@ bool VCheckIsTargetWindow(LPWSTR text);
 
 void VSendMessageBack(LPCWSTR buff, HWND hDlg);
 
+void VManualQuit();
+
 void VInstallHooks();
 void VUnInstallHooks();
 

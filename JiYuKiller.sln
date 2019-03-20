@@ -4,10 +4,6 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 15.0.28010.2041
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "JiYuKiller", "JiYuKiller\JiYuKiller.vcxproj", "{78929B2E-BA33-4C47-9C6B-1BB5716B5581}"
-	ProjectSection(ProjectDependencies) = postProject
-		{5EAD2B4D-6E69-41B6-B5CD-454E35A3140A} = {5EAD2B4D-6E69-41B6-B5CD-454E35A3140A}
-		{F53C06B4-5DD9-437F-96AB-A0E7D450DE2B} = {F53C06B4-5DD9-437F-96AB-A0E7D450DE2B}
-	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "JiYuKillerDriver", "JiYuKillerDriver\JiYuKillerDriver.vcxproj", "{F53C06B4-5DD9-437F-96AB-A0E7D450DE2B}"
 EndProject
