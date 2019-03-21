@@ -632,9 +632,13 @@ bool WriteResourceToFile(int rsId, LPWSTR toFile) {
 }
 
 //Unload JiYuDriver
-void TryForceUnloadJiYuDriver() {
-	UnLoadKernelDriver(L"TDFileFilter");
-	UnLoadKernelDriver(L"TDNetFilter");
+void TryForceUnloadJiYuProcHookDriver() 
+{
+	HANDLE hDeviceTDProcHook = CreateFile(L"\\\\.\\TDProcHook", GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	if (hDeviceTDProcHook) {
+		CloseHandle(hDeviceTDProcHook);
+		UnLoadKernelDriver(L"TDProcHook");
+	}
 }
 
 HHOOK mouse_Hook = NULL;

@@ -9,9 +9,9 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <DebuggerFlavor>WindowsRemoteDebugger</DebuggerFlavor>
-    <RemoteDebuggerCommand>C:\Program Files\Mythware\极域课堂管理系统软件V6.0 2016 豪华版\StudentMain.exe</RemoteDebuggerCommand>
+    <RemoteDebuggerCommand>C:\Users\a\Desktop\JiYuKiller.exe</RemoteDebuggerCommand>
     <RemoteDebuggerConnection>RemoteWithoutAuthentication</RemoteDebuggerConnection>
     <RemoteDebuggerServerName>192.168.11.136</RemoteDebuggerServerName>
-    <RemoteDebuggerWorkingDirectory>C:\Program Files\Mythware\极域课堂管理系统软件V6.0 2016 豪华版\</RemoteDebuggerWorkingDirectory>
+    <RemoteDebuggerWorkingDirectory>C:\Users\a\Desktop\</RemoteDebuggerWorkingDirectory>
   </PropertyGroup>
 </Project>

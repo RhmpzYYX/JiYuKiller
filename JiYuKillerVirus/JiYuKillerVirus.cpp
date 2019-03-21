@@ -23,7 +23,7 @@ extern HINSTANCE hInst;
 
 WNDPROC jiYuWndProc;
 WNDPROC jiYuTDDeskWndProc;
-list<tag_WNDIJJ>  jiYuWnds;
+list<HWND>  jiYuWnds;
 HWND jiYuGBWnd = NULL;
 HWND jiYuGBDeskRdWnd = NULL;
 
@@ -174,20 +174,7 @@ void VHookFWindow(const wchar_t* hWndStr) {
 			}
 		}
 		if (!VIsInIllegalWindows(hWnd)) {
-			tag_WNDIJJ ij;
-			ij.wnd = hWnd;
-			ij.canSizeToFull = true;
-			jiYuWnds.push_back(ij);
-			/*WNDPROC oldWndProc = (WNDPROC)GetWindowLong(hWnd, GWL_WNDPROC);;
-			if (oldWndProc != (WNDPROC)JiYuWndProc && oldWndProc != (WNDPROC)MainWndProc && jiYuWndProc != oldWndProc) {
-				jiYuWndProc = oldWndProc;
-				SetWindowLong(hWnd, GWL_WNDPROC, (LONG)jiYuWndProc);
-			}
-			*/
-		}
-		else {
-			VIsInIllegalWindowsSetCansize(hWnd);
-
+			jiYuWnds.push_back(hWnd);
 		}
 	}
 }
@@ -204,18 +191,8 @@ void VHookWindow(const wchar_t* hWndStr) {
 			}
 		}
 		//
-		if (!VIsInIllegalWindows(hWnd)) {
-			tag_WNDIJJ ij;
-			ij.wnd = hWnd;
-			ij.canSizeToFull = true;
-			jiYuWnds.push_back(ij);
-			/*WNDPROC oldWndProc = (WNDPROC)GetWindowLong(hWnd, GWL_WNDPROC);;
-			if (oldWndProc != (WNDPROC)JiYuWndProc && oldWndProc != (WNDPROC)MainWndProc && jiYuWndProc != oldWndProc) {
-				jiYuWndProc = oldWndProc;
-				SetWindowLong(hWnd, GWL_WNDPROC, (LONG)jiYuWndProc);
-			}
-			*/
-		}
+		if (!VIsInIllegalWindows(hWnd)) 
+			jiYuWnds.push_back(hWnd);
 	}
 }
 void VFixGuangBoWindow(HWND hWnd) {
@@ -227,34 +204,12 @@ void VFixGuangBoWindow(HWND hWnd) {
 	}
 	SendMessage(hWnd, WM_SIZE, 0, 0);
 }
-bool VIsInIllegalWindowsCanSize(HWND hWnd, bool setTo) {
-	list<tag_WNDIJJ>::iterator testiterator;
-	for (testiterator = jiYuWnds.begin(); testiterator != jiYuWnds.end(); ++testiterator)
-	{
-		if ((*testiterator).wnd == hWnd && (*testiterator).canSizeToFull) {
-			(*testiterator).canSizeToFull = setTo;
-			return true;
-		}
-	}
-	return false;
-}
 bool VIsInIllegalWindows(HWND hWnd) {
-	list<tag_WNDIJJ>::iterator testiterator;
-	for (testiterator = jiYuWnds.begin(); testiterator != jiYuWnds.end(); ++testiterator)
+	list<HWND>::iterator testiterator;
+	for (testiterator = jiYuWnds.begin(); testiterator != jiYuWnds.end(); testiterator++)
 	{
-		if ((*testiterator).wnd == hWnd)
+		if ((*testiterator) == hWnd)
 			return true;
-	}
-	return false;
-}
-bool VIsInIllegalWindowsSetCansize(HWND hWnd) {
-	list<tag_WNDIJJ>::iterator testiterator;
-	for (testiterator = jiYuWnds.begin(); testiterator != jiYuWnds.end(); ++testiterator)
-	{
-		if ((*testiterator).wnd == hWnd) {
-			(*testiterator).canSizeToFull = true;
-			return true;
-		}
 	}
 	return false;
 }
@@ -421,15 +376,15 @@ hk17 = 0, hk18 = 0, hk19= 0, hk20 = 0;
 fnSetWindowPos raSetWindowPos = NULL;
 fnMoveWindow raMoveWindow = NULL;
 fnSetForegroundWindow raSetForegroundWindow = NULL;
+fnBringWindowToTop faBringWindowToTop = NULL;
 fnDeviceIoControl raDeviceIoControl = NULL;
 fnCreateFileA faCreateFileA = NULL;
 fnCreateFileW faCreateFileW = NULL;
 fnSetWindowsHookExA faSetWindowsHookExA = NULL;
-fnmouse_event famouse_event = NULL;
+fnDeferWindowPos faDeferWindowPos = NULL;
 fnSendInput faSendInput = NULL;
+fnmouse_event famouse_event = NULL;
 fnChangeDisplaySettingsW faChangeDisplaySettingsW = NULL;
-fnOpenDesktopA faOpenDesktopA = NULL;
-fnOpenInputDesktop faOpenInputDesktop = NULL;
 fnTDDeskCreateInstance faTDDeskCreateInstance = NULL;
 fnSetWindowLongA faSetWindowLongA = NULL;
 fnSetWindowLongW faSetWindowLongW = NULL;
@@ -444,11 +399,11 @@ void VInstallHooks() {
 	raMoveWindow = (fnMoveWindow)GetProcAddress(hUser32, "MoveWindow");
 	raSetForegroundWindow = (fnSetForegroundWindow)GetProcAddress(hUser32, "SetForegroundWindow");
 	faSetWindowsHookExA = (fnSetWindowsHookExA)GetProcAddress(hUser32, "SetWindowsHookExA");
-	famouse_event = (fnmouse_event)GetProcAddress(hUser32, "mouse_event");
+	faDeferWindowPos = (fnDeferWindowPos)GetProcAddress(hUser32, "DeferWindowPos");
+	faBringWindowToTop = (fnBringWindowToTop)GetProcAddress(hUser32, "BringWindowToTop");
 	faSendInput = (fnSendInput)GetProcAddress(hUser32, "SendInput");
 	faChangeDisplaySettingsW = (fnChangeDisplaySettingsW)GetProcAddress(hUser32, "ChangeDisplaySettingsW");
-	faOpenDesktopA = (fnOpenDesktopA)GetProcAddress(hUser32, "OpenDesktopA");
-	faOpenInputDesktop = (fnOpenInputDesktop)GetProcAddress(hUser32, "OpenInputDesktop");
+	famouse_event = (fnmouse_event)GetProcAddress(hUser32, "mouse_event");
 	faSetWindowLongA = (fnSetWindowLongA)GetProcAddress(hUser32, "SetWindowLongA");
 	faSetWindowLongW = (fnSetWindowLongW)GetProcAddress(hUser32, "SetWindowLongW");
 
@@ -464,17 +419,14 @@ void VInstallHooks() {
 	hk1 = Mhook_SetHook((PVOID*)&raSetWindowPos, hkSetWindowPos);
 	hk2 = Mhook_SetHook((PVOID*)&raMoveWindow, hkMoveWindow);
 	hk3 = Mhook_SetHook((PVOID*)&raSetForegroundWindow, hkSetForegroundWindow);
-	//hk4 = 
+	hk4 = Mhook_SetHook((PVOID*)&faBringWindowToTop, hkBringWindowToTop);
 	hk5 = Mhook_SetHook((PVOID*)&raDeviceIoControl, hkDeviceIoControl);
 	hk6 = Mhook_SetHook((PVOID*)&faCreateFileA, hkCreateFileA);
 	hk7 = Mhook_SetHook((PVOID*)&faCreateFileW, hkCreateFileW);
 	hk8 = Mhook_SetHook((PVOID*)&faSetWindowsHookExA, hkSetWindowsHookExA);
-	//hk9 = Mhook_SetHook((PVOID*)&famouse_event, hkmouse_event);
+	hk9 = Mhook_SetHook((PVOID*)&faDeferWindowPos, hkDeferWindowPos);
 	hk10 = Mhook_SetHook((PVOID*)&faSendInput, hkSendInput);
-	//hk11 = Mhook_SetHook((PVOID*)&faSetThreadDesktop, hkSetThreadDesktop);
-	//hk12 = Mhook_SetHook((PVOID*)&faChangeDisplaySettingsW, hkChangeDisplaySettingsW);
-	//hk13 = Mhook_SetHook((PVOID*)&faOpenDesktopA, hkOpenDesktopA);
-	//hk14 = Mhook_SetHook((PVOID*)&faOpenInputDesktop, hkOpenInputDesktop);
+	hk11 = Mhook_SetHook((PVOID*)&famouse_event, hkmouse_event);
 
 	//if(faTDDeskCreateInstance) 
 	//	hk15 = Mhook_SetHook((PVOID*)&faTDDeskCreateInstance, hkTDDeskCreateInstance);
@@ -487,14 +439,14 @@ void VUnInstallHooks() {
 	if (hk1) Mhook_Unhook((PVOID*)&raSetWindowPos);
 	if (hk2) Mhook_Unhook((PVOID*)&raMoveWindow);
 	if (hk3) Mhook_Unhook((PVOID*)&raSetForegroundWindow);
-	//if (hk4) Mhook_Unhook((PVOID*)&);
+	if (hk4) Mhook_Unhook((PVOID*)&faBringWindowToTop);
 	if (hk5) Mhook_Unhook((PVOID*)&raDeviceIoControl);
 	if (hk6) Mhook_Unhook((PVOID*)&faCreateFileA);
 	if (hk7) Mhook_Unhook((PVOID*)&faCreateFileW);
 	if (hk8) Mhook_Unhook((PVOID*)&faSetWindowsHookExA);
-	//if (hk9) Mhook_Unhook((PVOID*)&famouse_event);
+	if (hk9) Mhook_Unhook((PVOID*)&faDeferWindowPos);
 	if (hk10) Mhook_Unhook((PVOID*)&faSendInput);
-	//if (hk11) Mhook_Unhook((PVOID*)&faSetThreadDesktop);
+	if (hk11) Mhook_Unhook((PVOID*)&famouse_event);
 	//if (hk12) Mhook_Unhook((PVOID*)&faChangeDisplaySettingsW);
 	//if (hk13) Mhook_Unhook((PVOID*)&faOpenDesktopA);
 	//if (hk14) Mhook_Unhook((PVOID*)&faOpenInputDesktop);
@@ -507,13 +459,16 @@ void VUnInstallHooks() {
 
 //Fuck driver devices
 HANDLE hDeviceTDKeybd = NULL;
+HANDLE hDeviceTDProcHook = NULL;
 
 void VOpenFuckDrivers() {
 	hDeviceTDKeybd = CreateFile(L"\\\\.\\TDKeybd", GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	hDeviceTDProcHook = CreateFile(L"\\\\.\\TDProcHook", GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 }
 void VCloseFuckDrivers()
 {
-	CloseHandle(hDeviceTDKeybd);
+	if (hDeviceTDProcHook) CloseHandle(hDeviceTDProcHook);
+	if (hDeviceTDKeybd) CloseHandle(hDeviceTDKeybd);
 }
 
 //Hook stubs
@@ -529,50 +484,43 @@ BOOL WINAPI hkSetWindowPos(HWND hWnd, HWND hWndInsertAfter, int x, int y, int cx
 	if (loaded) 
 	{
 		if (x == 0 && y == 0 && cx == screenWidth && cy == screenHeight)
-		{
-			if (VIsInIllegalWindowsCanSize(hWnd, false))
-			{
-				WCHAR text[32];
-				GetWindowText(hWnd, text, 32);
-				if (VCheckIsTargetWindow(text))
-				{
-					ShowWindow(hWnd, SW_MINIMIZE);
-					Sleep(100);
-					ShowWindow(hWnd, SW_NORMAL);
-				}
-				return raSetWindowPos(hWnd, HWND_BOTTOM, x, y, cx, cy, SWP_NOACTIVATE | SWP_NOSENDCHANGING);
-			}
-			else return raSetWindowPos(hWnd, HWND_BOTTOM, x, y, cx, cy, uFlags);
-		}
-		if (VIsInIllegalWindows(hWnd)) {
 			return TRUE;
-		}
+		if (VIsInIllegalWindows(hWnd)) 
+			return TRUE;
 	}
 	return raSetWindowPos(hWnd, hWndInsertAfter, x, y, cx, cy, uFlags);
+}
+HDWP WINAPI hkDeferWindowPos(HDWP hWinPosInfo, HWND hWnd, HWND hWndInsertAfter, int x, int y, int cx, int cy, UINT uFlags)
+{
+	if (loaded)
+	{
+		if (x == 0 && y == 0 && cx == screenWidth && cy == screenHeight)
+			return NULL;
+		if (VIsInIllegalWindows(hWnd))
+			return NULL;
+	}
+	return faDeferWindowPos(hWinPosInfo, hWnd, hWndInsertAfter, x, y, cx, cy, uFlags);
 }
 BOOL WINAPI hkMoveWindow(HWND hWnd, int x, int y, int cx, int cy, BOOL bRepaint)
 {
 	if (loaded)
 	{
-		if (x == 0 && y == 0 && cx == screenWidth && cx == screenHeight) {
-			WCHAR text[32];
-			GetWindowText(hWnd, text, 32);
-			if (VCheckIsTargetWindow(text))
-			{
-				ShowWindow(hWnd, SW_MINIMIZE);
-				Sleep(100);
-				ShowWindow(hWnd, SW_NORMAL);
-
-				return TRUE;
-			}
-		}
+		if (x == 0 && y == 0 && cx == screenWidth && cy == screenHeight)
+			return TRUE;
 		if (VIsInIllegalWindows(hWnd))
 			return TRUE;
-	} return raMoveWindow(hWnd, x, y, cx, cy, bRepaint);
+	} 
+	return raMoveWindow(hWnd, x, y, cx, cy, bRepaint);
 }
 BOOL WINAPI hkDeviceIoControl(HANDLE hDevice, DWORD dwIoControlCode, LPVOID lpInBuffer, DWORD nInBufferSize, LPVOID lpOutBuffer, DWORD nOutBufferSize, LPDWORD lpBytesReturned,  LPOVERLAPPED lpOverlapped) {
 	if (hDeviceTDKeybd) {
 		if (hDevice == hDeviceTDKeybd) {
+			SetLastError(ERROR_ACCESS_DENIED);
+			return FALSE;
+		}
+	}
+	if (hDeviceTDProcHook) {
+		if (hDevice == hDeviceTDProcHook) {
 			SetLastError(ERROR_ACCESS_DENIED);
 			return FALSE;
 		}
@@ -586,7 +534,7 @@ HANDLE WINAPI hkCreateFileA(LPCSTR lpFileName,  DWORD dwDesiredAccess, DWORD dwS
 			SetLastError(ERROR_ACCESS_DENIED);
 			return INVALID_HANDLE_VALUE;
 		}
-		if (StringHlp::StrEqualA(lpFileName, "\\\\.\\TDVideo")) {
+		if (StringHlp::StrEqualA(lpFileName, "\\\\.\\TDProcHook")) {
 			SetLastError(ERROR_ACCESS_DENIED);
 			return INVALID_HANDLE_VALUE;
 		}
@@ -600,7 +548,7 @@ HANDLE WINAPI hkCreateFileW(LPCWSTR lpFileName, DWORD dwDesiredAccess,  DWORD dw
 			SetLastError(ERROR_ACCESS_DENIED);
 			return INVALID_HANDLE_VALUE;
 		}
-		if (StringHlp::StrEqualW(lpFileName, L"\\\\.\\TDVideo")) {
+		if (StringHlp::StrEqualW(lpFileName, L"\\\\.\\TDProcHook")) {
 			SetLastError(ERROR_ACCESS_DENIED);
 			return INVALID_HANDLE_VALUE;
 		}
@@ -627,6 +575,15 @@ UINT WINAPI hkSendInput(UINT cInputs, LPINPUT pInputs, int cbSize)
 	if (loaded)
 		return cInputs;
 	return faSendInput(cInputs, pInputs, cbSize);
+}
+BOOL WINAPI hkBringWindowToTop(_In_ HWND hWnd)
+{
+	if (loaded)
+	{
+		if (VIsInIllegalWindows(hWnd))
+			return TRUE;
+	}
+	return faBringWindowToTop(hWnd);
 }
 
 LONG WINAPI hkChangeDisplaySettingsW(DEVMODEW* lpDevMode, DWORD dwFlags)

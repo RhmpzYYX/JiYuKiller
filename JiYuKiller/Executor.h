@@ -51,7 +51,7 @@ void ExtractParts();
 
 bool WriteResourceToFile(int rsId, LPWSTR toFile);
 
-void TryForceUnloadJiYuDriver();
+void TryForceUnloadJiYuProcHookDriver();
 
 BOOL InstallMouseHook();
 BOOL UninstallMouseHook();

@@ -21,7 +21,6 @@ void VHookFWindow(const wchar_t * hWndStr);
 void VHookWindow(const wchar_t * hWndStr);
 void VFixGuangBoWindow(HWND hWnd);
 bool VIsInIllegalWindows(HWND hWnd);
-bool VIsInIllegalWindowsSetCansize(HWND hWnd);
 void VBoom();
 
 bool VCheckIsTargetWindow(LPWSTR text);
@@ -44,7 +43,7 @@ INT_PTR CALLBACK JiYuTDDeskWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARA
 typedef BOOL (WINAPI *fnSetForegroundWindow)(HWND hWnd);
 typedef BOOL (WINAPI *fnSetWindowPos)(HWND hWnd, HWND hWndInsertAfter, int X, int Y, int cx, int cy, UINT uFlags);
 typedef BOOL (WINAPI *fnMoveWindow)(HWND hWnd, int X, int Y, int nWidth, int nHeight, BOOL bRepaint);
-typedef BOOL (WINAPI *fnBlockInput)(BOOL fBlockIt);
+typedef BOOL (WINAPI *fnBringWindowToTop)(HWND hWnd); 
 typedef BOOL (WINAPI *fnDeviceIoControl)(
 	__in        HANDLE hDevice,
 	__in        DWORD dwIoControlCode,
@@ -78,12 +77,16 @@ typedef HHOOK (WINAPI *fnSetWindowsHookExA)(
 	__in HOOKPROC lpfn,
 	__in_opt HINSTANCE hmod,
 	__in DWORD dwThreadId);
-typedef VOID(WINAPI *fnmouse_event)(
-	__in DWORD dwFlags,
-	__in DWORD dx,
-	__in DWORD dy,
-	__in DWORD dwData,
-	__in ULONG_PTR dwExtraInfo);
+typedef HDWP (WINAPI *fnDeferWindowPos)(
+	_In_ HDWP hWinPosInfo,
+	_In_ HWND hWnd,
+	_In_opt_ HWND hWndInsertAfter,
+	_In_ int x,
+	_In_ int y,
+	_In_ int cx,
+	_In_ int cy,
+	_In_ UINT uFlags);
+typedef VOID(WINAPI *fnmouse_event)(DWORD dwFlags, DWORD dx, DWORD dy, DWORD dwData, ULONG_PTR dwExtraInfo);
 typedef UINT (WINAPI *fnSendInput)(
 	__in UINT cInputs,                     // number of input in the array
 	__in_ecount(cInputs) LPINPUT pInputs,  // array of inputs
@@ -116,7 +119,7 @@ typedef HRESULT(__cdecl *fnTDAjustCreateInstance)(CLSID *rclsid, LPUNKNOWN pUnkO
 BOOL WINAPI hkSetWindowPos(HWND hWnd, HWND hWndInsertAfter, int x, int y, int cx, int cy, UINT uFlags);
 BOOL WINAPI hkMoveWindow(HWND hWnd, int x, int y, int cx, int cy, BOOL bRepaint);
 BOOL WINAPI hkSetForegroundWindow(HWND hWnd);
-BOOL WINAPI hkBlockInput(BOOL fBlockIt);
+BOOL WINAPI hkBringWindowToTop(_In_ HWND hWnd);
 BOOL WINAPI hkDeviceIoControl(
 	__in        HANDLE hDevice,
 	__in        DWORD dwIoControlCode,
@@ -150,18 +153,20 @@ HHOOK WINAPI hkSetWindowsHookExA(
 	__in HOOKPROC lpfn,
 	__in_opt HINSTANCE hmod,
 	__in DWORD dwThreadId);
-VOID WINAPI hkmouse_event(
-	__in DWORD dwFlags,
-	__in DWORD dx,
-	__in DWORD dy,
-	__in DWORD dwData,
-	__in ULONG_PTR dwExtraInfo);
+HDWP WINAPI hkDeferWindowPos(
+	_In_ HDWP hWinPosInfo,
+	_In_ HWND hWnd,
+	_In_opt_ HWND hWndInsertAfter,
+	_In_ int x,
+	_In_ int y,
+	_In_ int cx,
+	_In_ int cy,
+	_In_ UINT uFlags);
 UINT WINAPI hkSendInput(
 	__in UINT cInputs,                     // number of input in the array
 	__in_ecount(cInputs) LPINPUT pInputs,  // array of inputs
 	__in int cbSize);
-BOOL WINAPI hkSetThreadDesktop(
-	__in HDESK hDesktop);
+VOID WINAPI hkmouse_event(DWORD dwFlags, DWORD dx, DWORD dy, DWORD dwData, ULONG_PTR dwExtraInfo);
 LONG WINAPI hkChangeDisplaySettingsW(
 	__in_opt DEVMODEW* lpDevMode,
 	__in DWORD dwFlags);
