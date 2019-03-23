@@ -9,6 +9,13 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "JiYuKillerDriver", "JiYuKil
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "JiYuKillerVirus", "JiYuKillerVirus\JiYuKillerVirus.vcxproj", "{5EAD2B4D-6E69-41B6-B5CD-454E35A3140A}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "JiYuKillerLoader", "JiYuKillerLoader\JiYuKillerLoader.vcxproj", "{5B3AD36E-8EDE-439E-80E6-541D93FE7B66}"
+	ProjectSection(ProjectDependencies) = postProject
+		{78929B2E-BA33-4C47-9C6B-1BB5716B5581} = {78929B2E-BA33-4C47-9C6B-1BB5716B5581}
+		{5EAD2B4D-6E69-41B6-B5CD-454E35A3140A} = {5EAD2B4D-6E69-41B6-B5CD-454E35A3140A}
+		{F53C06B4-5DD9-437F-96AB-A0E7D450DE2B} = {F53C06B4-5DD9-437F-96AB-A0E7D450DE2B}
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -41,6 +48,14 @@ Global
 		{5EAD2B4D-6E69-41B6-B5CD-454E35A3140A}.Release|x64.Build.0 = Release|x64
 		{5EAD2B4D-6E69-41B6-B5CD-454E35A3140A}.Release|x86.ActiveCfg = Release|Win32
 		{5EAD2B4D-6E69-41B6-B5CD-454E35A3140A}.Release|x86.Build.0 = Release|Win32
+		{5B3AD36E-8EDE-439E-80E6-541D93FE7B66}.Debug|x64.ActiveCfg = Debug|x64
+		{5B3AD36E-8EDE-439E-80E6-541D93FE7B66}.Debug|x64.Build.0 = Debug|x64
+		{5B3AD36E-8EDE-439E-80E6-541D93FE7B66}.Debug|x86.ActiveCfg = Debug|Win32
+		{5B3AD36E-8EDE-439E-80E6-541D93FE7B66}.Debug|x86.Build.0 = Debug|Win32
+		{5B3AD36E-8EDE-439E-80E6-541D93FE7B66}.Release|x64.ActiveCfg = Release|x64
+		{5B3AD36E-8EDE-439E-80E6-541D93FE7B66}.Release|x64.Build.0 = Release|x64
+		{5B3AD36E-8EDE-439E-80E6-541D93FE7B66}.Release|x86.ActiveCfg = Release|Win32
+		{5B3AD36E-8EDE-439E-80E6-541D93FE7B66}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

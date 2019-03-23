@@ -109,12 +109,12 @@ NTSTATUS MSuspendProcessNt(DWORD dwPId, HANDLE handle)
 				if (rs == STATUS_SUCCESS)
 					return STATUS_SUCCESS;
 				else {
-					OutPutStatus(L"SuspendProcess failed (PID : %d) NTSTATUS : 0x%08X", dwPId, rs);
+					XOutPutStatus(L"SuspendProcess failed (PID : %d) NTSTATUS : 0x%08X", dwPId, rs);
 					return rs;
 				}
 			}
 		}
-		else OutPutStatus(L"SuspendProcess failed in OpenProcess : (PID : %d) NTSTATUS : 0x%08X", dwPId, rs);
+		else XOutPutStatus(L"SuspendProcess failed in OpenProcess : (PID : %d) NTSTATUS : 0x%08X", dwPId, rs);
 		return rs;
 	}
 	else if (handle)
@@ -122,7 +122,7 @@ NTSTATUS MSuspendProcessNt(DWORD dwPId, HANDLE handle)
 		NTSTATUS  rs = NtSuspendProcess(handle);
 		if (rs == 0) return STATUS_SUCCESS;
 		else {
-			OutPutStatus(L"SuspendProcess failed NTSTATUS : 0x%08X", rs);
+			XOutPutStatus(L"SuspendProcess failed NTSTATUS : 0x%08X", rs);
 			return rs;
 		}
 	}
@@ -140,12 +140,12 @@ NTSTATUS MResumeProcessNt(DWORD dwPId, HANDLE handle)
 				NtClose(hProcess);
 				if (rs == STATUS_SUCCESS) return STATUS_SUCCESS;
 				else {
-					OutPutStatus(L"RusemeProcess failed (PID : %d) NTSTATUS : 0x%08X", dwPId, rs);
+					XOutPutStatus(L"RusemeProcess failed (PID : %d) NTSTATUS : 0x%08X", dwPId, rs);
 					return rs;
 				}
 			}
 		}
-		else OutPutStatus(L"RusemeProcess failed in OpenProcess : (PID : %d) NTSTATUS : 0x%08X", dwPId, rs);
+		else XOutPutStatus(L"RusemeProcess failed in OpenProcess : (PID : %d) NTSTATUS : 0x%08X", dwPId, rs);
 		return rs;
 	}
 	else if (handle)
@@ -154,7 +154,7 @@ NTSTATUS MResumeProcessNt(DWORD dwPId, HANDLE handle)
 		if (rs == 0)return STATUS_SUCCESS;
 		else
 		{
-			OutPutStatus(L"RusemeProcess failed NTSTATUS : 0x%08X", rs);
+			XOutPutStatus(L"RusemeProcess failed NTSTATUS : 0x%08X", rs);
 			return rs;
 		}
 	}
@@ -194,7 +194,7 @@ NTSTATUS MTerminateProcessNt(DWORD dwId, HANDLE handle)
 		NTSTATUS rs = NtTerminateProcess(handle, 0);
 		if (rs == 0) return STATUS_SUCCESS;
 		else {
-			OutPutStatus(L"TerminateProcess failed NTSTATUS : 0x%08X", rs);
+			XOutPutStatus(L"TerminateProcess failed NTSTATUS : 0x%08X", rs);
 			return rs;
 		}
 	}
@@ -209,7 +209,7 @@ NTSTATUS MTerminateProcessNt(DWORD dwId, HANDLE handle)
 				NtClose(hProcess);
 				if (rs == 0) return STATUS_SUCCESS;
 				else {
-					OutPutStatus(L"TerminateProcess failed : (PID : %d) NTSTATUS : 0x%08X", dwId, rs);
+					XOutPutStatus(L"TerminateProcess failed : (PID : %d) NTSTATUS : 0x%08X", dwId, rs);
 					return rs;
 				}
 			}

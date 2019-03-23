@@ -20,6 +20,7 @@ PsResumeProcess_ _PsResumeProcess;
 PsSuspendProcess_ _PsSuspendProcess;
 PsLookupProcessByProcessId_ _PsLookupProcessByProcessId;
 PsLookupThreadByThreadId_ _PsLookupThreadByThreadId;
+ZwTerminateProcess_ _ZwTerminateProcess;
 
 extern PspTerminateThreadByPointer_ PspTerminateThreadByPointer;
 extern PspExitThread_ PspExitThread;
@@ -109,7 +110,7 @@ NTSTATUS IOControlDispatch(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
 		ULONG_PTR pid = *(ULONG_PTR*)InputData;
 
 		PEPROCESS pEProc;
-		Status = _PsLookupProcessByProcessId((HANDLE)pid, &pEProc);
+		Status = PsLookupProcessByProcessId((HANDLE)pid, &pEProc);
 		if (NT_SUCCESS(Status))
 		{
 			HANDLE handle;
@@ -127,7 +128,7 @@ NTSTATUS IOControlDispatch(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
 	case CTL_OPEN_THREAD: {
 		ULONG_PTR tid = *(ULONG_PTR*)InputData;
 		PETHREAD pEThread;
-		Status = _PsLookupThreadByThreadId((HANDLE)tid, &pEThread);
+		Status = PsLookupThreadByThreadId((HANDLE)tid, &pEThread);
 		if (NT_SUCCESS(Status))
 		{
 			HANDLE handle;
@@ -144,11 +145,22 @@ NTSTATUS IOControlDispatch(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
 	case CTL_KILL_PROCESS: {
 		ULONG_PTR pid = *(ULONG_PTR*)InputData;
 		PEPROCESS pEProcess;
-		Status = _PsLookupProcessByProcessId((HANDLE)pid, &pEProcess);
+		KdPrint(("CTL_KILL_PROCESS : %d\n", pid));
+		Status = PsLookupProcessByProcessId((HANDLE)pid, &pEProcess);
 		if (NT_SUCCESS(Status))
 		{
-			Status = KillProcess(pEProcess);
+			HANDLE handle;
+			Status = ObOpenObjectByPointer(pEProcess, 0, 0, PROCESS_ALL_ACCESS, *PsProcessType, UserMode, &handle);
+			if (NT_SUCCESS(Status))
+				Status = ZwTerminateProcess(handle, STATUS_SUCCESS);
+			ZwClose(handle);
+			if(Status == STATUS_ACCESS_DENIED)
+				Status = KillProcess(pEProcess);
 			ObDereferenceObject(pEProcess);
+
+			Status = STATUS_SUCCESS;
+			_memcpy_s(OutputData, OutputDataLength, &Status, sizeof(Status));
+			Informaiton = OutputDataLength;
 		}
 		break;
 	}
@@ -161,7 +173,7 @@ NTSTATUS IOControlDispatch(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
 		ULONG_PTR tid = *(ULONG_PTR*)InputData;
 		if (PspTerminateThreadByPointer) {
 			PETHREAD pEThread;
-			Status = _PsLookupThreadByThreadId((HANDLE)tid, &pEThread);
+			Status = PsLookupThreadByThreadId((HANDLE)tid, &pEThread);
 			if (NT_SUCCESS(Status))
 			{
 				Status = PspTerminateThreadByPointer(pEThread, 0, TRUE);
@@ -174,7 +186,7 @@ NTSTATUS IOControlDispatch(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
 	case CTL_SUSPEND_PROCESS: {
 		ULONG_PTR pid = *(ULONG_PTR*)InputData;
 		PEPROCESS pEProc;
-		Status = _PsLookupProcessByProcessId((HANDLE)pid, &pEProc);
+		Status = PsLookupProcessByProcessId((HANDLE)pid, &pEProc);
 		if (NT_SUCCESS(Status))
 		{
 			Status = _PsSuspendProcess(pEProc);
@@ -187,7 +199,7 @@ NTSTATUS IOControlDispatch(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
 	case CTL_RESUME_PROCESS: {
 		ULONG_PTR pid = *(ULONG_PTR*)InputData;
 		PEPROCESS pEProc;
-		Status = _PsLookupProcessByProcessId((HANDLE)pid, &pEProc);
+		Status = PsLookupProcessByProcessId((HANDLE)pid, &pEProc);
 		if (NT_SUCCESS(Status))
 		{
 			Status = _PsResumeProcess(pEProc);
@@ -198,11 +210,12 @@ NTSTATUS IOControlDispatch(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
 		break;
 	}
 	case CTL_SHUTDOWN: {
+		KdPrint(("CompuleShutdown\n"));
 		CompuleShutdown();
+		//
 		break;
 	}
-	default:
-		break;
+	default: break;
 	}
 
 	Irp->IoStatus.Status = Status; //Ring3 GetLastError();
@@ -231,7 +244,9 @@ VOID LoadFunctions()
 	UNICODE_STRING PsSuspendProcessName;
 	UNICODE_STRING PsLookupProcessByProcessIdName;
 	UNICODE_STRING PsLookupThreadByThreadIdName;
+	UNICODE_STRING ZwTerminateProcessName;
 
+	RtlInitUnicodeString(&ZwTerminateProcessName, L"ZwTerminateProces");
 	RtlInitUnicodeString(&PsLookupProcessByProcessIdName, L"PsLookupProcessByProcessId");
 	RtlInitUnicodeString(&PsLookupThreadByThreadIdName, L"PsLookupThreadByThreadId");
 	RtlInitUnicodeString(&PsResumeProcessName, L"PsResumeProcess");
@@ -255,9 +270,13 @@ VOID LoadFunctions()
 	_strcat_s = (strcat_s_)MmGetSystemRoutineAddress(&StrcatsName);
 	_strcpy_s = (strcpy_s_)MmGetSystemRoutineAddress(&StrcpysName);
 	swprintf_s = (swprintf_s_)MmGetSystemRoutineAddress(&SWprintfsName);
+	_ZwTerminateProcess = (ZwTerminateProcess_)MmGetSystemRoutineAddress(&ZwTerminateProcessName);
 
 	PspTerminateThreadByPointer = (PspTerminateThreadByPointer_)KxGetPspTerminateThreadByPointerAddressX_7Or8Or10(0x50);
 	PspExitThread = (PspExitThread_)KxGetPspExitThread_32_64();
+
+	DbgPrint("PspTerminateThreadByPointer : 0x%08x", PspTerminateThreadByPointer);
+	DbgPrint("PspExitThread : 0x%08x", PspExitThread);
 }
 
 NTSTATUS ZeroKill(ULONG_PTR PID)   //X32  X64
@@ -301,10 +320,10 @@ NTSTATUS ZeroKill(ULONG_PTR PID)   //X32  X64
 NTSTATUS KillProcess(PEPROCESS pEProcess)
 {
 	NTSTATUS status = STATUS_UNSUCCESSFUL;
-	if (!PspTerminateThreadByPointer)
-		return STATUS_NOT_SUPPORTED;
+	if (!PspTerminateThreadByPointer) return STATUS_NOT_SUPPORTED;
 
-	for (UINT16 i = 8; i < 65536; i += 4)
+	_PsSuspendProcess(pEProcess);
+	for (UINT32 i = 8; i < 65536; i += 4)
 	{
 		//__try {
 			PETHREAD pEThread;
@@ -320,25 +339,11 @@ NTSTATUS KillProcess(PEPROCESS pEProcess)
 			KdPrint(("---错误!---"));
 		}*/
 	}
-
+	_PsResumeProcess(pEProcess);
+	status = STATUS_SUCCESS;
 	return status;
 }
-//重启计算机(强制)
-VOID CompuleReBoot(void)
-{
-	typedef void(__fastcall*FCRB)(void);
-	/*
-	mov al,0FEH
-	out 64h,al
-	ret
-	*/
-	FCRB fcrb = NULL;
-	UCHAR *shellcode = "\xB0\xFE\xE6\x64\xC3";
-	fcrb = (FCRB)ExAllocatePool(NonPagedPool, sizeof(shellcode));
-	memcpy(fcrb, shellcode, sizeof(shellcode));
-	fcrb();
-	return;
-}
+
 //关闭计算机(强制)
 VOID CompuleShutdown(void)
 {
@@ -350,9 +355,10 @@ VOID CompuleShutdown(void)
 	out dx,ax
 	retn
 	*/
+
 	FCRB fcrb = NULL;
 	UCHAR *shellcode = "\x66\xB8\x01\x20\x66\xBA\x04\x10\x66\xEF\xC3";
-	fcrb = (FCRB)ExAllocatePool(NonPagedPool, sizeof(shellcode));
-	memcpy(fcrb, shellcode, sizeof(shellcode));
+	fcrb = (FCRB)ExAllocatePool(NonPagedPool, 13);
+	memcpy(fcrb, shellcode, 13);
 	fcrb();
 }

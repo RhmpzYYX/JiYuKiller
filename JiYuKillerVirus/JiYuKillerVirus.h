@@ -114,6 +114,11 @@ typedef LONG (WINAPI  *fnSetWindowLongW)(
 	__in int nIndex,
 	__in LONG dwNewLong);
 typedef HRESULT(__cdecl *fnTDAjustCreateInstance)(CLSID *rclsid, LPUNKNOWN pUnkOuter, DWORD dwClsContext, IID *riid, LPVOID *ppv);
+typedef BOOL (WINAPI *fnShowWindow)(
+	_In_ HWND hWnd,
+	_In_ int nCmdShow);
+
+
 //Hooks
 
 BOOL WINAPI hkSetWindowPos(HWND hWnd, HWND hWndInsertAfter, int x, int y, int cx, int cy, UINT uFlags);
@@ -187,6 +192,9 @@ LONG WINAPI hkSetWindowLongW(
 	__in HWND hWnd,
 	__in int nIndex,
 	__in LONG dwNewLong);
+BOOL WINAPI hkShowWindow(
+	_In_ HWND hWnd,
+	_In_ int nCmdShow);
 
 HRESULT __cdecl hkTDDeskCreateInstance(CLSID *rclsid, LPUNKNOWN pUnkOuter, DWORD dwClsContext, IID *riid, LPVOID *ppv);
 

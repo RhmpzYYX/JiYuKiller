@@ -1,7 +1,10 @@
 #include "stdafx.h"
 #include "DriverLoader.h"
 #include "JiYuKiller.h"
+#include "Utils.h"
 #include <shlwapi.h>
+
+extern WCHAR driverPath[MAX_PATH];
 
 HANDLE hKDrv = NULL;
 
@@ -24,8 +27,8 @@ BOOL MREG_ForceDeleteServiceRegkey(LPWSTR lpszDriverName)
 	wsprintf(regPath, L"SYSTEM\\CurrentControlSet\\services\\%s", lpszDriverName);
 	rs = MREG_DeleteKey(HKEY_LOCAL_MACHINE, regPath);
 
-	if (!rs)OutPutStatus(L"RegDeleteTree failed : %d in delete key HKEY_LOCAL_MACHINE\\%s", GetLastError(), regPath);
-	else OutPutStatus(L"Service Key deleted : HKEY_LOCAL_MACHINE\\%s", regPath);
+	if (!rs)XOutPutStatus(L"RegDeleteTree failed : %d in delete key HKEY_LOCAL_MACHINE\\%s", GetLastError(), regPath);
+	else XOutPutStatus(L"Service Key deleted : HKEY_LOCAL_MACHINE\\%s", regPath);
 
 	wchar_t regName[MAX_PATH];
 	wcscpy_s(regName, lpszDriverName);
@@ -34,10 +37,10 @@ BOOL MREG_ForceDeleteServiceRegkey(LPWSTR lpszDriverName)
 	rs = MREG_DeleteKey(HKEY_LOCAL_MACHINE, regPath);
 
 	if (!rs) {
-		OutPutStatus(L"RegDeleteTree failed : %d in delete key HKEY_LOCAL_MACHINE\\%s", GetLastError(), regPath);
+		XOutPutStatus(L"RegDeleteTree failed : %d in delete key HKEY_LOCAL_MACHINE\\%s", GetLastError(), regPath);
 		rs = TRUE;
 	}
-	else OutPutStatus(L"Service Key deleted : HKEY_LOCAL_MACHINE\\%s", regPath);
+	else XOutPutStatus(L"Service Key deleted : HKEY_LOCAL_MACHINE\\%s", regPath);
 
 	return rs;
 }
@@ -60,7 +63,7 @@ RECREATE:
 	hServiceMgr = OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS);
 	if (hServiceMgr == NULL)
 	{
-		OutPutStatus(L"Load driver error in OpenSCManager : %d", GetLastError());
+		XOutPutStatus(L"Load driver error in OpenSCManager : %d", GetLastError());
 		bRet = FALSE;
 		goto BeforeLeave;
 	}
@@ -74,7 +77,7 @@ RECREATE:
 		dwRtn = GetLastError();
 		if (dwRtn == ERROR_SERVICE_MARKED_FOR_DELETE)
 		{
-			OutPutStatus(L"Load driver error in CreateService : ERROR_SERVICE_MARKED_FOR_DELETE");
+			XOutPutStatus(L"Load driver error in CreateService : ERROR_SERVICE_MARKED_FOR_DELETE");
 			if (!recreatee) {
 				recreatee = true;
 				if (hServiceDDK) CloseServiceHandle(hServiceDDK);
@@ -84,7 +87,7 @@ RECREATE:
 		}
 		if (dwRtn != ERROR_IO_PENDING && dwRtn != ERROR_SERVICE_EXISTS)
 		{
-			OutPutStatus(L"Load driver error in CreateService : %d", dwRtn);
+			XOutPutStatus(L"Load driver error in CreateService : %d", dwRtn);
 			bRet = FALSE;
 			goto BeforeLeave;
 		}
@@ -92,7 +95,7 @@ RECREATE:
 		if (hServiceDDK == NULL)
 		{
 			dwRtn = GetLastError();
-			OutPutStatus(L"Load driver error in OpenService : %d", dwRtn);
+			XOutPutStatus(L"Load driver error in OpenService : %d", dwRtn);
 			bRet = FALSE;
 			goto BeforeLeave;
 		}
@@ -103,7 +106,7 @@ RECREATE:
 		DWORD dwRtn = GetLastError();
 		if (dwRtn != ERROR_IO_PENDING && dwRtn != ERROR_SERVICE_ALREADY_RUNNING)
 		{
-			OutPutStatus(L"Load driver error in StartService : %d", dwRtn);
+			XOutPutStatus(L"Load driver error in StartService : %d", dwRtn);
 			bRet = FALSE;
 			goto BeforeLeave;
 		}
@@ -145,7 +148,7 @@ BOOL UnLoadKernelDriver(const wchar_t* szSvrName)
 	hServiceMgr = OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS);
 	if (hServiceMgr == NULL)
 	{
-		OutPutStatus(L"UnLoad driver error in OpenSCManager : %d", GetLastError());
+		XOutPutStatus(L"UnLoad driver error in OpenSCManager : %d", GetLastError());
 		bRet = FALSE;
 		goto BeforeLeave;
 	}
@@ -154,18 +157,18 @@ BOOL UnLoadKernelDriver(const wchar_t* szSvrName)
 	if (hServiceDDK == NULL)
 	{
 		if (GetLastError() == ERROR_SERVICE_DOES_NOT_EXIST)
-			OutPutStatus(L"UnLoad driver error because driver not load.");
-		else OutPutStatus(L"UnLoad driver error in OpenService : %d", GetLastError());
+			XOutPutStatus(L"UnLoad driver error because driver not load.");
+		else XOutPutStatus(L"UnLoad driver error in OpenService : %d", GetLastError());
 		bRet = FALSE;
 		goto BeforeLeave;
 	}
 	//停止驱动程序，如果停止失败，只有重新启动才能，再动态加载。 
 	if (!ControlService(hServiceDDK, SERVICE_CONTROL_STOP, &SvrSta)) {
-		OutPutStatus(L"UnLoad driver error in ControlService : %d", GetLastError());
+		XOutPutStatus(L"UnLoad driver error in ControlService : %d", GetLastError());
 	}
 	//动态卸载驱动程序。 
 	if (!DeleteService(hServiceDDK)) {
-		OutPutStatus(L"UnLoad driver error in DeleteService : %d", GetLastError());
+		XOutPutStatus(L"UnLoad driver error in DeleteService : %d", GetLastError());
 		bRet = FALSE;
 	}
 	else bDeleted = TRUE;
@@ -191,11 +194,27 @@ BOOL OpenDriver()
 		NULL);
 	if (!hKDrv || hKDrv == INVALID_HANDLE_VALUE)
 	{
-		OutPutStatus(L"Get Kernel driver handle (CreateFile) failed : %d . ", GetLastError());
+		XOutPutStatus(L"Get Kernel driver handle (CreateFile) failed : %d . ", GetLastError());
 		return FALSE;
 	}
 	return TRUE;
 }
 BOOL DriverLoaded() {
 	return hKDrv != NULL;
+}
+
+BOOL XLoadDriver() {
+	if (!MIs64BitOS() && MIsRunasAdmin())
+	{
+		if (LoadKernelDriver(L"JiYuKillerDriver", driverPath, NULL))
+			if (OpenDriver())
+				XOutPutStatus(L"驱动加载成功");
+			else XOutPutStatus(L"驱动加载成功，但打开驱动失败");
+	}
+	return FALSE;
+}
+BOOL XUnLoadDriver() {
+	if (DriverLoaded())
+		return UnLoadKernelDriver(L"JiYuKillerDriver");
+	return TRUE;
 }

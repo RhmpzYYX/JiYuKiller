@@ -14,36 +14,7 @@ NTSTATUS ZeroKill(ULONG_PTR PID);
 NTSTATUS KillProcess(PEPROCESS pEThread);
 
 VOID CompuleReBoot(void);
-
 VOID CompuleShutdown(void);
-
-//#define KBD_DRIVER_NAME  L"\\Driver\\Kbdclass"
-#define KBD_DRIVER_NAME  L"\\Driver\\Kbdclass"
-//调用延迟函数的延迟长度的宏
-#define  DELAY_ONE_MILLISECOND (-10 * 1000) //1毫秒
-//可通过[驱动对象DRIVER_NAME名称路径]获得[该驱动对象的DRIVER_OBJECT指针]
-NTSTATUS ObReferenceObjectByName(
-	PUNICODE_STRING ObjectName,
-	ULONG Attributes,
-	PACCESS_STATE AccessState,
-	ACCESS_MASK DesiredAccess,
-	POBJECT_TYPE ObjectType,
-	KPROCESSOR_MODE AccessMode,
-	PVOID ParseContext,
-	PVOID *Object
-);
-NTSTATUS OpenTagDevice(wchar_t* DriObj);
-NTSTATUS Read(
-	PDEVICE_OBJECT pDevObj,
-	PIRP pIrp
-);
-//读IRP请求处理函数
-NTSTATUS c2pReadComplete
-(
-	IN PDEVICE_OBJECT DeviceObject,     //目标设备对象
-	IN PIRP Irp,                        //IRP指针
-	IN PVOID Context                    //该自定义参数为：过滤设备对象
-);
 
 //Defs
 
@@ -65,6 +36,7 @@ typedef PETHREAD(_stdcall *PsGetNextProcessThread_)(IN PEPROCESS Process, IN PET
 typedef NTSTATUS(_stdcall *PsTerminateProcess_)(PEPROCESS Process, NTSTATUS ExitStatus);
 typedef PEPROCESS(_stdcall *PsGetNextProcess_)(PEPROCESS Process);
 typedef ULONG(_stdcall *KeForceResumeThread_)(__inout PKTHREAD Thread);
+typedef NTSTATUS(_stdcall *ZwTerminateProcess_)(_In_opt_ HANDLE ProcessHandle,_In_ NTSTATUS ExitStatus);
 
 
 

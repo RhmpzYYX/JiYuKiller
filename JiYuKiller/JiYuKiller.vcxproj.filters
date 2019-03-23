@@ -36,13 +36,28 @@
     <ClInclude Include="StringSplit.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="Executor.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="NtHlp.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="MsgCenter.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="MainWindow.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="WindowResolver.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Tracker.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="AboutWindow.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="KernelUtils.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
@@ -62,13 +77,28 @@
     <ClCompile Include="StringSplit.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="Executor.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="NtHlp.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="MsgCenter.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="MainWindow.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="WindowResolver.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="Tracker.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="AboutWindow.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="KernelUtils.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
@@ -101,7 +131,9 @@
     </Image>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\Release\JiYuKillerDriver.sys" />
-    <None Include="..\Release\JiYuKillerVirus.dll" />
+    <None Include="MainWindow.html" />
+    <None Include="MainCSS.css" />
+    <None Include="AboutWindow.html" />
+    <None Include="AboutWindow.css" />
   </ItemGroup>
 </Project>

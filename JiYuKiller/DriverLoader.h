@@ -13,3 +13,7 @@ BOOL UnLoadKernelDriver(const wchar_t* szSvrName);
 BOOL OpenDriver();
 //返回驱动是否加载
 BOOL DriverLoaded();
+
+BOOL XLoadDriver();
+
+BOOL XUnLoadDriver();

@@ -1,0 +1,115 @@
+body {
+    font-family: 'Microsoft YaHei UI';
+    padding: 10px;
+    background-color: #fff;
+}
+
+.stat {
+    padding: 2px 0;
+    margin: 5px;
+}
+.stat img {
+    width: 16px;
+    height: 16px;
+    margin-top: 4px;
+    margin-left: 3px;
+}
+.stat span {
+    margin-left: 5px;
+}
+
+h5{
+    margin: 5px;
+    margin-top: 15px;
+}
+
+#bottom_bar{
+    padding: 12px;
+}
+#bottom_about {
+    color: #fff;
+    display: inline-block;
+    float: left;
+    background-color: #0094ff;
+    border-radius: 50%;
+    text-decoration: none;
+    padding: 3px 10px;
+    margin-top: 3px;
+    margin-left: 10px;
+}
+#bottom_about:hover {
+    background-color: #54b7ff;
+}
+#bottom_about_text {
+    color: #a1a1a1;
+    display: inline-block;
+    position: absolute;
+    margin-top: 5px;
+    left: 55px;
+}
+#exten_area{
+    display:block;
+}
+#status_area {
+    display: block;
+    width: 100%;
+    height: 110px;
+}
+#logo {
+    width: 40px;
+    height: 40px;
+}
+
+.btn {
+    display: inline-block;
+    padding: 6px 13px;
+    background-color: #bababa;
+    border-radius: 50%;
+    color: #fff;
+    text-decoration: none;
+}
+.btn:hover {
+    background-color: #0094ff;
+}
+
+.hover-red:hover {
+    background-color: #ff6a00;
+}
+
+.link{
+    color: #54b7ff;
+    text-decoration: none;
+}
+.link:hover, .link:active {
+    color: #0094ff;
+    text-decoration: underline;
+}
+
+.text-center {
+    text-align: center;
+}
+.text-right {
+    text-align: right;
+}
+
+.text-red {
+    color: #f61700;
+}
+.text-green {
+    color: #35a40f;
+}
+
+.inline {
+    display: inline-block;
+}
+.right-link {
+    display: inline-block;
+    position: absolute;
+    right: 0;
+}
+.abs-bottom {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+}

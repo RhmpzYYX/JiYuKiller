@@ -24,6 +24,7 @@ extern HINSTANCE hInst;
 WNDPROC jiYuWndProc;
 WNDPROC jiYuTDDeskWndProc;
 list<HWND>  jiYuWnds;
+list<HWND>  jiYuWndCanSize;
 HWND jiYuGBWnd = NULL;
 HWND jiYuGBDeskRdWnd = NULL;
 
@@ -42,6 +43,7 @@ void VUnloadAll() {
 		VCloseMsgCenter();
 		VCloseFuckDrivers();
 		jiYuWnds.clear();
+		jiYuWndCanSize.clear();
 		VUnInstallHooks();
 		loaded = false;
 	}
@@ -191,22 +193,33 @@ void VHookWindow(const wchar_t* hWndStr) {
 			}
 		}
 		//
-		if (!VIsInIllegalWindows(hWnd)) 
+		if (!VIsInIllegalWindows(hWnd)) {
 			jiYuWnds.push_back(hWnd);
+			//jiYuWndCanSize.push_back(hWnd);
+		}
 	}
 }
 void VFixGuangBoWindow(HWND hWnd) {
 	WNDPROC oldWndProc = (WNDPROC)GetWindowLong(hWnd, GWL_WNDPROC);
-	if (oldWndProc != (WNDPROC)JiYuWndProc && oldWndProc != (WNDPROC)MainWndProc && jiYuWndProc != oldWndProc) {
+	if (oldWndProc != (WNDPROC)JiYuWndProc) {
 		jiYuWndProc = (WNDPROC)oldWndProc;
 		SetWindowLong(hWnd, GWL_WNDPROC, (LONG)JiYuWndProc);
 		VOutPutStatus(L"Hooked hWnd %d (0x%08x) WNDPROC", hWnd, hWnd);
+		SendMessage(hWnd, WM_SHOWWINDOW, TRUE, FALSE);
 	}
-	SendMessage(hWnd, WM_SIZE, 0, 0);
 }
 bool VIsInIllegalWindows(HWND hWnd) {
 	list<HWND>::iterator testiterator;
 	for (testiterator = jiYuWnds.begin(); testiterator != jiYuWnds.end(); testiterator++)
+	{
+		if ((*testiterator) == hWnd)
+			return true;
+	}
+	return false;
+}
+bool VIsInIllegalCanSizeWindows(HWND hWnd) {
+	list<HWND>::iterator testiterator;
+	for (testiterator = jiYuWndCanSize.begin(); testiterator != jiYuWndCanSize.end(); testiterator++)
 	{
 		if ((*testiterator) == hWnd)
 			return true;
@@ -219,8 +232,7 @@ void VBoom() {
 	*P = 0;
 }
 bool VCheckIsTargetWindow(LPWSTR text) {
-	return (StrEqual(text, L"屏幕广播") || StrEqual(text, L"屏幕演播室窗口")
-		|| StrEqual(text, L"BlackScreen Window"));
+	return (StrEqual(text, L"屏幕广播") || StrEqual(text, L"屏幕演播室窗口") || StrEqual(text, L"BlackScreen Window"));
 }
 void VSendMessageBack(LPCWSTR buff, HWND hDlg) {
 	HWND receiveWindow = FindWindow(NULL, L"JY Killer");
@@ -237,132 +249,6 @@ void VManualQuit()
 	VCloseMsgCenter();
 	jiYuWnds.clear();
 	loaded = false;
-}
-
-INT_PTR CALLBACK MainWndProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
-{
-	switch (message)
-	{
-	case WM_INITDIALOG: {
-		SetWindowText(hDlg, L"JY Killer Virus");
-		//SetTimer(hDlg, TIMER_WATCH_DOG_SRV, 10000,	NULL);
-		SetTimer(hDlg, TIMER_AUTO_HIDE, 5000, NULL);
-		break;	
-	}
-	case WM_DESTROY: {
-		//KillTimer(hDlg, TIMER_WATCH_DOG_SRV);
-		break;
-	}
-	case WM_SYSCOMMAND: {
-		if (wParam == SC_CLOSE)
-			DestroyWindow(hWndMsgCenter);
-		break;
-	}
-	case WM_COMMAND: {
-		if (wParam == IDC_KILL) {
-			PostQuitMessage(0);
-			ExitProcess(0);
-		}
-		if (wParam == IDC_SMINSIZE) {
-			ShowWindow(hDlg, SW_MINIMIZE);
-		}		
-		if (wParam == IDC_SHIDE) {
-			RECT rc; GetWindowRect(hDlg, &rc);
-			SetWindowPos(hDlg, 0, rc.left, -56, 0, 0, SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOSIZE);
-		}		
-		break;
-	}
-	case WM_COPYDATA: {
-		PCOPYDATASTRUCT  pCopyDataStruct = (PCOPYDATASTRUCT)lParam;
-		if (pCopyDataStruct->cbData > 0)
-		{
-			WCHAR recvData[256] = { 0 };
-			wcsncpy_s(recvData, (WCHAR *)pCopyDataStruct->lpData, pCopyDataStruct->cbData);
-			VHandleMsg(recvData);
-		}
-		break;
-	}
-	case WM_LBUTTONDOWN: {
-		RECT rc; GetWindowRect(hDlg, &rc);
-		if (rc.top == -56) {
-			SetWindowPos(hDlg, 0, rc.left, 0, 0, 0, SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOSIZE);
-		}
-		else {
-			ReleaseCapture();
-			SendMessage(hDlg, WM_NCLBUTTONDOWN, HTCAPTION, 0);
-		}
-		break;
-	}
-	case WM_TIMER: {
-		if (wParam == TIMER_AUTO_HIDE) {
-			KillTimer(hDlg, TIMER_AUTO_HIDE);
-			SendMessage(hDlg, WM_COMMAND, IDC_SHIDE, NULL);
-		}
-		break;
-	}
-	default:
-		break;
-	}
-	return 0;
-}
-INT_PTR CALLBACK JiYuWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
-	/*
-	if (message == WM_TIMER) {
-		KillTimer(hWnd, wParam);
-		return 0;
-	}
-	*/
-	if (message == WM_GETMINMAXINFO) {
-		PMINMAXINFO pMinMaxInfo = (PMINMAXINFO)lParam;
-		pMinMaxInfo->ptMinTrackSize.x = 0;
-		pMinMaxInfo->ptMinTrackSize.y = 0;
-		return 0;
-	}
-	if (message == WM_SIZE) {
-		RECT rcWindow;
-		RECT rcClient;
-		GetWindowRect(hWnd, &rcWindow);
-		GetClientRect(hWnd, &rcClient);
-
-		bool setToFull = false;
-		if (rcWindow.right - rcWindow.left == screenWidth && rcWindow.bottom - rcWindow.top == screenHeight)
-			setToFull = true;
-		if (jiYuGBDeskRdWnd == NULL) {
-			jiYuGBDeskRdWnd = FindWindowExW(hWnd, NULL, NULL, L"TDDesk Render Window");
-			//HOOK TDDesk Render Window for WM_SIZE
-			WNDPROC oldWndProc = (WNDPROC)GetWindowLong(jiYuGBDeskRdWnd, GWL_WNDPROC);
-			if (oldWndProc != (WNDPROC)jiYuTDDeskWndProc && oldWndProc != (WNDPROC)JiYuTDDeskWndProc) {
-				jiYuTDDeskWndProc = (WNDPROC)oldWndProc;
-				SetWindowLong(jiYuGBDeskRdWnd, GWL_WNDPROC, (LONG)JiYuTDDeskWndProc);
-				VOutPutStatus(L"Hooked jiYuGBDeskRdWnd %d (0x%08x) WNDPROC", jiYuGBDeskRdWnd, jiYuGBDeskRdWnd);
-			}
-		}
-		if (!IsWindow(jiYuGBDeskRdWnd) || GetParent(jiYuGBDeskRdWnd) != hWnd)
-			jiYuGBDeskRdWnd = NULL;
-		if (jiYuGBDeskRdWnd != NULL)
-			if(setToFull) MoveWindow(jiYuGBDeskRdWnd, 0, 0, screenWidth, screenHeight, TRUE);
-			else {
-				SendMessage(jiYuGBDeskRdWnd, WM_SIZE, 0, MAKELPARAM(10, 10));
-				//MoveWindow(jiYuGBDeskRdWnd, 0, 0, rcClient.right - rcClient.left, rcClient.bottom - rcClient.top, TRUE);
-			}
-	}
-
-	if (jiYuWndProc) return jiYuWndProc(hWnd, message, wParam, lParam);
-	else return DefWindowProc(hWnd, message, wParam, lParam);
-}
-INT_PTR CALLBACK JiYuTDDeskWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
-{
-	if (message == WM_SIZE) {
-		RECT rcParent;
-		GetClientRect(GetParent(hWnd), &rcParent);
-		int w = LOWORD(lParam), h = HIWORD(lParam) ,
-			rw = rcParent.right - rcParent.left, rh = rcParent.bottom - rcParent.top;
-		if (w !=rw || h != rh) {
-			MoveWindow(hWnd, 0, 0, rw, rh, TRUE);
-		}
-	}
-	if (jiYuTDDeskWndProc) return jiYuTDDeskWndProc(hWnd, message, wParam, lParam);
-	else return DefWindowProc(hWnd, message, wParam, lParam);
 }
 
 BOOL hk1 = 0, hk2 = 0, hk3 = 0, hk4 = 0,
@@ -388,6 +274,7 @@ fnChangeDisplaySettingsW faChangeDisplaySettingsW = NULL;
 fnTDDeskCreateInstance faTDDeskCreateInstance = NULL;
 fnSetWindowLongA faSetWindowLongA = NULL;
 fnSetWindowLongW faSetWindowLongW = NULL;
+fnShowWindow faShowWindow = NULL;
 
 void VInstallHooks() {
 
@@ -406,6 +293,7 @@ void VInstallHooks() {
 	famouse_event = (fnmouse_event)GetProcAddress(hUser32, "mouse_event");
 	faSetWindowLongA = (fnSetWindowLongA)GetProcAddress(hUser32, "SetWindowLongA");
 	faSetWindowLongW = (fnSetWindowLongW)GetProcAddress(hUser32, "SetWindowLongW");
+	faShowWindow = (fnShowWindow)GetProcAddress(hUser32, "ShowWindow");
 
 	raDeviceIoControl = (fnDeviceIoControl)GetProcAddress(hKernel32, "DeviceIoControl");
 	faCreateFileA = (fnCreateFileA)GetProcAddress(hKernel32, "CreateFileA");
@@ -433,6 +321,8 @@ void VInstallHooks() {
 
 	hk16 = Mhook_SetHook((PVOID*)&faSetWindowLongA, hkSetWindowLongA);
 	hk17 = Mhook_SetHook((PVOID*)&faSetWindowLongW, hkSetWindowLongW);
+	hk18 = Mhook_SetHook((PVOID*)&faShowWindow, hkShowWindow);
+
 }
 void VUnInstallHooks() {
 
@@ -453,7 +343,7 @@ void VUnInstallHooks() {
 	//if (hk15) Mhook_Unhook((PVOID*)&faTDDeskCreateInstance);
 	if (hk16) Mhook_Unhook((PVOID*)&faSetWindowLongA);
 	if (hk17) Mhook_Unhook((PVOID*)&faSetWindowLongW);
-
+	if (hk18) Mhook_Unhook((PVOID*)&faShowWindow);
 
 }
 
@@ -483,8 +373,17 @@ BOOL WINAPI hkSetWindowPos(HWND hWnd, HWND hWndInsertAfter, int x, int y, int cx
 {
 	if (loaded) 
 	{
-		if (x == 0 && y == 0 && cx == screenWidth && cy == screenHeight)
+		if (x == 0 && y == 0 && cx == screenWidth && cy == screenHeight) 
+		{
+			if (VIsInIllegalCanSizeWindows(hWnd))
+			{
+				jiYuWndCanSize.remove(hWnd);
+				raSetWindowPos(hWnd, hWndInsertAfter, x, y, cx, cy, uFlags | SWP_NOZORDER);
+				SendMessage(hWnd, WM_SIZE, NULL, NULL);
+				return TRUE;
+			}
 			return TRUE;
+		}
 		if (VIsInIllegalWindows(hWnd)) 
 			return TRUE;
 	}
@@ -494,8 +393,15 @@ HDWP WINAPI hkDeferWindowPos(HDWP hWinPosInfo, HWND hWnd, HWND hWndInsertAfter, 
 {
 	if (loaded)
 	{
-		if (x == 0 && y == 0 && cx == screenWidth && cy == screenHeight)
+		if (x == 0 && y == 0 && cx == screenWidth && cy == screenHeight) {
+			if (VIsInIllegalCanSizeWindows(hWnd)) {
+				jiYuWndCanSize.remove(hWnd);
+				HDWP rs = faDeferWindowPos(hWinPosInfo, hWnd, hWndInsertAfter, x, y, cx, cy, uFlags | SWP_NOZORDER);
+				SendMessage(hWnd, WM_SIZE, NULL, NULL);
+				return rs;
+			}
 			return NULL;
+		}
 		if (VIsInIllegalWindows(hWnd))
 			return NULL;
 	}
@@ -505,8 +411,13 @@ BOOL WINAPI hkMoveWindow(HWND hWnd, int x, int y, int cx, int cy, BOOL bRepaint)
 {
 	if (loaded)
 	{
-		if (x == 0 && y == 0 && cx == screenWidth && cy == screenHeight)
+		if (x == 0 && y == 0 && cx == screenWidth && cy == screenHeight) {
+			if (VIsInIllegalCanSizeWindows(hWnd)) {
+				jiYuWndCanSize.remove(hWnd);
+				return raMoveWindow(hWnd,  x, y, cx, cy, bRepaint);
+			}
 			return TRUE;
+		}
 		if (VIsInIllegalWindows(hWnd))
 			return TRUE;
 	} 
@@ -616,6 +527,17 @@ LONG WINAPI hkSetWindowLongW(HWND hWnd, int nIndex, LONG dwNewLong)
 		return GetWindowLongW(hWnd, nIndex);
 	return faSetWindowLongW(hWnd, nIndex, dwNewLong);
 }
+BOOL WINAPI hkShowWindow(HWND hWnd, int nCmdShow)
+{
+	if (nCmdShow == SW_SHOW || nCmdShow == SW_SHOWNORMAL) {
+		WCHAR text[32];
+		GetWindowText(hWnd, text, 32);
+		if (VCheckIsTargetWindow(text)) {
+			VSendMessageBack(L"hkb:immck", hWndMsgCenter);
+		}
+	}
+	return faShowWindow(hWnd, nCmdShow);
+}
 
 //HOOK Virus stub
 EXTERN_C HRESULT __declspec(dllexport) __cdecl TDAjustCreateInstance(CLSID *rclsid, LPUNKNOWN pUnkOuter, DWORD dwClsContext, IID *riid, LPVOID *ppv)
@@ -623,5 +545,144 @@ EXTERN_C HRESULT __declspec(dllexport) __cdecl TDAjustCreateInstance(CLSID *rcls
 	return faTDAjustCreateInstance(rclsid, pUnkOuter, dwClsContext, riid, ppv);
 }
 
+INT_PTR CALLBACK MainWndProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	switch (message)
+	{
+	case WM_INITDIALOG: {
+		SetWindowText(hDlg, L"JY Killer Virus");
+		//SetTimer(hDlg, TIMER_WATCH_DOG_SRV, 10000,	NULL);
+		SetTimer(hDlg, TIMER_AUTO_HIDE, 5000, NULL);
+		break;
+	}
+	case WM_DESTROY: {
+		//KillTimer(hDlg, TIMER_WATCH_DOG_SRV);
+		break;
+	}
+	case WM_SYSCOMMAND: {
+		if (wParam == SC_CLOSE)
+			DestroyWindow(hWndMsgCenter);
+		break;
+	}
+	case WM_COMMAND: {
+		if (wParam == IDC_KILL) {
+			PostQuitMessage(0);
+			ExitProcess(0);
+		}
+		if (wParam == IDC_SMINSIZE) {
+			ShowWindow(hDlg, SW_MINIMIZE);
+		}
+		if (wParam == IDC_SHIDE) {
+			RECT rc; GetWindowRect(hDlg, &rc);
+			SetWindowPos(hDlg, 0, rc.left, -56, 0, 0, SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOSIZE);
+		}
+		break;
+	}
+	case WM_COPYDATA: {
+		PCOPYDATASTRUCT  pCopyDataStruct = (PCOPYDATASTRUCT)lParam;
+		if (pCopyDataStruct->cbData > 0)
+		{
+			WCHAR recvData[256] = { 0 };
+			wcsncpy_s(recvData, (WCHAR *)pCopyDataStruct->lpData, pCopyDataStruct->cbData);
+			VHandleMsg(recvData);
+		}
+		break;
+	}
+	case WM_LBUTTONDOWN: {
+		RECT rc; GetWindowRect(hDlg, &rc);
+		if (rc.top == -56) {
+			SetWindowPos(hDlg, 0, rc.left, 0, 0, 0, SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOSIZE);
+		}
+		else {
+			ReleaseCapture();
+			SendMessage(hDlg, WM_NCLBUTTONDOWN, HTCAPTION, 0);
+		}
+		break;
+	}
+	case WM_TIMER: {
+		if (wParam == TIMER_AUTO_HIDE) {
+			KillTimer(hDlg, TIMER_AUTO_HIDE);
+			SendMessage(hDlg, WM_COMMAND, IDC_SHIDE, NULL);
+		}
+		break;
+	}
+	default:
+		break;
+	}
+	return 0;
+}
+INT_PTR CALLBACK JiYuWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
+	/*
+	if (message == WM_TIMER) {
+		KillTimer(hWnd, wParam);
+		return 0;
+	}
+	*/
+	if (message == WM_GETMINMAXINFO) {
+		PMINMAXINFO pMinMaxInfo = (PMINMAXINFO)lParam;
+		pMinMaxInfo->ptMinTrackSize.x = 0;
+		pMinMaxInfo->ptMinTrackSize.y = 0;
+		return 0;
+	}
+	if (message == WM_SIZE) {
+		RECT rcWindow;
+		RECT rcClient;
+		GetWindowRect(hWnd, &rcWindow);
+		GetClientRect(hWnd, &rcClient);
 
+		bool setToFull = false;
+		if (rcWindow.right - rcWindow.left == screenWidth && rcWindow.bottom - rcWindow.top == screenHeight)
+			setToFull = true;
+		if (jiYuGBDeskRdWnd == NULL) {
+			jiYuGBDeskRdWnd = FindWindowExW(hWnd, NULL, NULL, L"TDDesk Render Window");
+			//HOOK TDDesk Render Window for WM_SIZE
+			WNDPROC oldWndProc = (WNDPROC)GetWindowLong(jiYuGBDeskRdWnd, GWL_WNDPROC);
+			if (oldWndProc != (WNDPROC)JiYuTDDeskWndProc) {
+				jiYuTDDeskWndProc = (WNDPROC)oldWndProc;
+				SetWindowLong(jiYuGBDeskRdWnd, GWL_WNDPROC, (LONG)JiYuTDDeskWndProc);
+				VOutPutStatus(L"Hooked jiYuGBDeskRdWnd %d (0x%08x) WNDPROC", jiYuGBDeskRdWnd, jiYuGBDeskRdWnd);
+			}
+		}
+		if (!IsWindow(jiYuGBDeskRdWnd) || GetParent(jiYuGBDeskRdWnd) != hWnd)
+			jiYuGBDeskRdWnd = NULL;
+		if (jiYuGBDeskRdWnd != NULL)
+			if (setToFull) MoveWindow(jiYuGBDeskRdWnd, 0, 0, screenWidth, screenHeight, TRUE);
+			else {
+				SendMessage(jiYuGBDeskRdWnd, WM_SIZE, 0, MAKELPARAM(10, 10));
+				//MoveWindow(jiYuGBDeskRdWnd, 0, 0, rcClient.right - rcClient.left, rcClient.bottom - rcClient.top, TRUE);
+			}
+	}
+	if (message == WM_SHOWWINDOW)
+	{
+		if (wParam)
+		{
+			SendMessage(hWnd, WM_SIZE, NULL, NULL);
+			int w = (int)((double)screenWidth * (3.0 / 4.0)), h = (int)((double)screenHeight * (double)(4.0 / 5.0));
+			if (raSetWindowPos) raSetWindowPos(hWnd, 0, (screenWidth - w) / 2, (screenHeight - h) / 2, w, h, SWP_NOZORDER | SWP_NOACTIVATE);
+			else SetWindowPos(hWnd, 0, (screenWidth - w) / 2, (screenHeight - h) / 2, w, h, SWP_NOZORDER | SWP_NOACTIVATE);
+		}
+		else jiYuWndCanSize.push_back(hWnd);
+	}
+	if (message == WM_DESTROY)
+	{
+		jiYuWnds.remove(hWnd);
+		jiYuWndCanSize.remove(hWnd);
+	}
+
+	if (jiYuWndProc) return jiYuWndProc(hWnd, message, wParam, lParam);
+	else return DefWindowProc(hWnd, message, wParam, lParam);
+}
+INT_PTR CALLBACK JiYuTDDeskWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	if (message == WM_SIZE) {
+		RECT rcParent;
+		GetClientRect(GetParent(hWnd), &rcParent);
+		int w = LOWORD(lParam), h = HIWORD(lParam),
+			rw = rcParent.right - rcParent.left, rh = rcParent.bottom - rcParent.top;
+		if (w != rw || h != rh) 
+			raMoveWindow(hWnd, 0, 0, rw, rh, TRUE);
+	}
+	if (jiYuTDDeskWndProc) return jiYuTDDeskWndProc(hWnd, message, wParam, lParam);
+	else return DefWindowProc(hWnd, message, wParam, lParam);
+}
 
