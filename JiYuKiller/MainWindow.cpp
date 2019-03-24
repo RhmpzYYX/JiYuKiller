@@ -7,6 +7,7 @@
 #include "DriverLoader.h"
 #include "htmlayout.h"
 #include "NtHlp.h"
+#include "Utils.h"
 #include "KernelUtils.h"
 #include "StringHlp.h"
 #include "StringSplit.h"
@@ -31,13 +32,20 @@ int setCKinterval = 4000;
 
 WCHAR statusBuffer[2048] = { 0 };
 
-bool firstShow = true, fullWindow = false, controlled = false, ck = true, top = false, isUserCancel = false;
+//var
+
+bool firstShow = true, fullWindow = false, controlled = false,
+ck = true, top = false, isUserCancel = false, hideTipShowed = false;
 HWND hWndMain = NULL, hWndTool = NULL;
+
+//Timer
 
 #define TIMER_AOP 2
 #define TIMER_RESET_PID 3
 #define TIMER_TOP_CHECK 4
 #define TIMER_CK_DEALY_HIDE 5
+
+//Global init
 
 bool XCreateMainWindow()
 {
@@ -67,6 +75,20 @@ void XDestroyMainWindow()
 
 bool XInitApp()
 {
+	int oldStatus = XCheckRunningApp();
+	if (oldStatus == 1)
+	{
+		MessageBox(0, L"已经有一个程序正在运行，同时只能运行一个实例，请关闭之前那个", L"错误", MB_ICONERROR);
+		return false;
+	}
+	if (oldStatus == -1)
+		return false;
+	
+
+	EnableDebugPriv(SE_DEBUG_NAME);
+	EnableDebugPriv(SE_SHUTDOWN_NAME);
+	EnableDebugPriv(SE_LOAD_DRIVER_NAME);
+
 	LoadNt();
 
 	XLoadDriver();
@@ -88,11 +110,27 @@ void XQuitApp()
 	PostQuitMessage(0);
 }
 bool XPreReadCommandLine(LPWSTR *szArgList, int argCount) {
-	if (argCount >= 2) {
-		if (wcscmp(szArgList[1], L"rex1") == 0) 
+	if (argCount >= 2) 
+	{
+		if (wcscmp(szArgList[1], L"rex1") == 0) {
 			MessageBox(NULL, L"刚才极域进行了非常严重的非法操纵，企图威胁本程序，现在极域已经被结束。", L"提示", MB_ICONINFORMATION);
+		}
 		else if (wcscmp(szArgList[1], L"rex2") == 0) {
 
+		}
+		else if (wcscmp(szArgList[1], L"ssss") == 0) {
+			if (XLoadDriver()) {
+				KFShutdown();
+				XUnLoadDriver();
+			}
+		}
+		else if (wcscmp(szArgList[1], L"sss") == 0)
+		{
+			ExitWindowsEx(EWX_SHUTDOWN | EWX_FORCE, 0);
+		}
+		else if (wcscmp(szArgList[1], L"ssr") == 0)
+		{
+			ExitWindowsEx(EWX_REBOOT | EWX_FORCE, 0);
 		}
 	}
 	return false;
@@ -141,6 +179,27 @@ void XLoadConfig()
 	}
 	else XOutPutStatus(L"未找到配置文件 [%s]，使用默认配置", iniPath);
 }
+INT XCheckRunningApp()//如果程序已经有一个在运行，则返回true
+{
+	HWND oldWindow = FindWindow(NULL, L"JY Killer");
+	if (oldWindow != NULL) {
+		if (!IsWindowVisible(oldWindow)) ShowWindow(oldWindow, SW_SHOW);
+		if (IsIconic(oldWindow)) ShowWindow(oldWindow, SW_RESTORE);
+		SetForegroundWindow(oldWindow);
+		return -1;
+	}
+	HANDLE  hMutex = CreateMutex(NULL, FALSE, L"JYKiller");
+	if (hMutex && (GetLastError() == ERROR_ALREADY_EXISTS))
+	{
+		CloseHandle(hMutex);
+		hMutex = NULL;
+		return 1;
+	}
+	return 0;
+}
+
+
+//Tray
 
 HMENU hMenuTray;
 NOTIFYICONDATA nid;
@@ -167,15 +226,14 @@ ATOM XRegisterClass(HINSTANCE hInstance)
 
 bool mainDomReday = false;
 
+//Elements
+
 htmlayout::dom::element stat_ctl_text;
 htmlayout::dom::element stat_ctl_text2;
-htmlayout::dom::element stat_ico_ctl_no;
-htmlayout::dom::element stat_ico_ctl_yes;
+htmlayout::dom::element stat_ico_ctl;
 
 htmlayout::dom::element stat_ck_text;
-htmlayout::dom::element stat_ico_ck_grey;
-htmlayout::dom::element stat_ico_ck_red;
-htmlayout::dom::element stat_ico_ck_green;
+htmlayout::dom::element stat_ico_ck;
 
 htmlayout::dom::element exten_area;
 htmlayout::dom::element status_area;
@@ -183,9 +241,12 @@ htmlayout::dom::element status_area;
 htmlayout::dom::element input_cmd;
 htmlayout::dom::element link_more;
 
-htmlayout::dom::element stat_ico_proc_red;
-htmlayout::dom::element stat_ico_proc_green;
+htmlayout::dom::element stat_ico_proc;
 htmlayout::dom::element stat_proc_text;
+
+htmlayout::dom::element xstate;
+
+//Events
 
 BOOL OnWmCreate(HWND hWnd)
 {
@@ -223,21 +284,18 @@ void OnDocumentComplete()
 	htmlayout::dom::root_element root(hWndMain);
 	stat_ctl_text = root.get_element_by_id(L"stat_ctl_text");
 	stat_ctl_text2 = root.get_element_by_id(L"stat_ctl_text2");
-	stat_ico_ctl_no = root.get_element_by_id(L"stat_ico_ctl_no");
-	stat_ico_ctl_yes = root.get_element_by_id(L"stat_ico_ctl_yes");
+	stat_ico_ctl = root.get_element_by_id(L"stat_ico_ctl");
 	stat_ck_text = root.get_element_by_id(L"stat_ck_text");
-	stat_ico_ck_grey = root.get_element_by_id(L"stat_ico_ck_grey");
-	stat_ico_ck_red = root.get_element_by_id(L"stat_ico_ck_red");
-	stat_ico_ck_green = root.get_element_by_id(L"stat_ico_ck_green");
+	stat_ico_ck = root.get_element_by_id(L"stat_ico_ck");
 	stat_proc_text = root.get_element_by_id(L"stat_proc_text");
-	stat_ico_proc_red = root.get_element_by_id(L"stat_ico_proc_red");
-	stat_ico_proc_green = root.get_element_by_id(L"stat_ico_proc_green");
+	stat_ico_proc = root.get_element_by_id(L"stat_ico_proc");
 
 	exten_area = root.get_element_by_id(L"exten_area");
 	status_area = root.get_element_by_id(L"status_area");
 	input_cmd = root.get_element_by_id(L"input_cmd");
 
 	link_more = root.get_element_by_id(L"link_more");
+	xstate = root.get_element_by_id(L"xstate");
 
 	if (setAutoForceKill) {
 		htmlayout::dom::element ele(root.get_element_by_id(L"check_auto_fkill"));
@@ -276,9 +334,11 @@ void OnRunCmd(vector<wstring> * cmds, int len)
 		}
 	}
 	else if (cmd == L"ss")  TSendBoom();
-	else if (cmd == L"sss") system("shutdown -s -t 0");
-	else if (cmd == L"ssss") KFShutdown();
-	else if (cmd == L"ckend") TSendCkEnd();
+	else if (cmd == L"sss") ExitWindowsEx(EWX_SHUTDOWN | EWX_FORCE, 0);
+	else if (cmd == L"ssr") ExitWindowsEx(EWX_REBOOT | EWX_FORCE, 0);
+	else if (cmd == L"ssss") KFShutdown(); 
+	else if (cmd == L"sssr") KFReboot();
+	else if (cmd == L"ckend") SetCkEnd();
 	else {
 		succ = false;
 		MessageBox(0, L"未知命令", L"JY Killer", 0);
@@ -299,7 +359,13 @@ void OnWmCommand(HWND hWnd, WPARAM wmId)
 		}
 		break;
 	}
-	case IDM_EXIT: SendMessage(hWndMain, WM_SYSCOMMAND, SC_CLOSE, 0); break;
+	case IDM_EXIT: {
+		if (!controlled || MessageBox(hWnd, L"极域正在运行，退出本软件将导致极域脱离控制，您是否还要退出？", L"注意", MB_YESNO | MB_ICONEXCLAMATION) == IDYES) {
+			isUserCancel = true;
+			XQuitApp();
+		}
+		break;
+	}
 	case IDM_HELP: ARunAboutWindow(hWnd); break;
 	default: break;
 	}
@@ -387,7 +453,7 @@ void OnLinkClick(HELEMENT link)
 {
 	htmlayout::dom::element cBut = link;
 	if (StrEqual(cBut.get_attribute("id"), L"bottom_about")) SendMessage(hWndMain, WM_COMMAND, IDM_HELP, 0);
-	else if (StrEqual(cBut.get_attribute("id"), L"link_exit")) SendMessage(hWndMain, WM_SYSCOMMAND, SC_CLOSE, 0);
+	else if (StrEqual(cBut.get_attribute("id"), L"link_exit")) SendMessage(hWndMain, WM_COMMAND, IDM_EXIT, 0);
 	else if (StrEqual(cBut.get_attribute("id"), L"link_more"))
 	{
 		if (fullWindow)
@@ -480,7 +546,8 @@ void OnHandleMsg(LPWSTR buff) {
 	wstring act(buff);
 	vector<wstring> arr;
 	SplitString(act, arr, L":");
-	if (arr.size() >= 2) {
+	if (arr.size() >= 2) 
+	{
 		if (arr[0] == L"hkb") 
 		{
 			if (arr[1] == L"succ")
@@ -506,6 +573,8 @@ void OnWmUser(HWND hDlg, WPARAM wParam, LPARAM lParam)
 	}
 }
 
+//Status set
+
 void SetCK(bool enable) 
 {
 	if (enable)
@@ -520,6 +589,7 @@ void SetCK(bool enable)
 		SetCkStatus(-1, (LPWSTR)L"CK 已停止");
 		XOutPutStatus(L"CK 已停止");
 	}
+	UpdateLogoState();
 }
 void ResetPid()
 {
@@ -528,61 +598,77 @@ void ResetPid()
 		bool b = TLocated();
 		SetProcStatus(b, b ? TGetCurrProcStatText() : (LPWSTR)L"");
 		TSendCtlStat();
+		UpdateLogoState();
 	}
 }
 
 void SetProcStatus(bool ctled, LPWSTR extendInfo)
 {
-	if (ctled) {
-		stat_ico_proc_red.set_attribute("style", L"display: none;");
-		stat_ico_proc_green.set_attribute("style", L"");
-	}
+	if (ctled)
+		stat_ico_proc.set_attribute("class", L"xico ico-green");
 	else {
-		stat_ico_proc_green.set_attribute("style", L"display: none;");
-		stat_ico_proc_red.set_attribute("style", L"");
+		stat_ico_proc.set_attribute("class", L"xico ico-red");
 		SetCtlStatus(false, NULL);
 	}
 	if (extendInfo != NULL) stat_proc_text.set_text(extendInfo);
 }
 void SetCtlStatus(bool ctled, LPWSTR extendInfo) {
-	if (controlled != ctled) {
-		if (ctled) {
-			stat_ico_ctl_no.set_attribute("style", L"display: none;");
-			stat_ico_ctl_yes.set_attribute("style", L"");
-
+	if (controlled != ctled)
+	{
+		if (ctled) 
+		{
+			stat_ico_ctl.set_attribute("class", L"xico ico-ctl-yes");
 			stat_ctl_text.set_text(L"当前已控制极域主进程");
 			stat_ctl_text.set_attribute("class", L"text-green");
 		}
 		else {
-			stat_ico_ctl_yes.set_attribute("style", L"display: none;");
-			stat_ico_ctl_no.set_attribute("style", L"");
-
+			stat_ico_ctl.set_attribute("class", L"xico ico-ctl-no");
 			stat_ctl_text.set_attribute("class", L"text-red");
 			stat_ctl_text.set_text(L"当前未控制极域主进程");
 		}
 		controlled = ctled;
+		UpdateLogoState();
 	}
 	if (extendInfo != NULL) stat_ctl_text2.set_text(extendInfo);
 }
 void SetCkStatus(int s, LPWSTR str)
 {
-	if (s == -1) {
-		stat_ico_ck_grey.set_attribute("style", L"display:none;");
-		stat_ico_ck_red.set_attribute("style",L"");
-		stat_ico_ck_green.set_attribute("style", L"display:none;");
-
-	}
-	else if (s == 0) {
-		stat_ico_ck_red.set_attribute("style", L"display:none;");
-		stat_ico_ck_grey.set_attribute("style", L"");
-		stat_ico_ck_green.set_attribute("style", L"display:none;");
-	}
-	else if (s == 1) {
-		stat_ico_ck_red.set_attribute("style", L"display:none;");
-		stat_ico_ck_green.set_attribute("style", L"");
-		stat_ico_ck_grey.set_attribute("style", L"display:none;");
-	}
+	if (s == -1) 
+		stat_ico_ck.set_attribute("class", L"xico ico-red");
+	else if (s == 0) 
+		stat_ico_ck.set_attribute("class", L"xico ico-grey");
+	else if (s == 1) 
+		stat_ico_ck.set_attribute("class", L"xico ico-green");
 	if(str!=NULL) stat_ck_text.set_text(str);
+	UpdateLogoState();
+}
+void SetLogoState(const wchar_t* s)
+{
+	WCHAR cls[65];
+	swprintf_s(cls, L"xstate %s", s);
+	if (!StrEqual(cls, xstate.get_attribute("class")))
+		xstate.set_attribute("class", cls);
+}
+void UpdateLogoState() 
+{
+	bool tl = TLocated();
+	bool wf = WLastState();
+	if (controlled)
+	{
+		if (wf) SetLogoState(L"xstate-ctled-founded");
+		else SetLogoState(L"xstate-ctled-nofound");
+	}
+	else
+	{
+		if (tl && wf) SetLogoState(L"xstate-noctl-running-andfounded");
+		else if (tl) SetLogoState(L"xstate-noctl-running");
+		else SetLogoState(L"xstate-noctl-nojiyu");
+	}
+}
+void SetCkEnd()
+{
+	SetLogoState(L"xstate-ckend");
+	TSendCkEnd();
 }
 BOOL LoadMainHtml(HWND hWnd)
 {
@@ -607,15 +693,24 @@ BOOL LoadMainHtml(HWND hWnd)
 	}
 	return result;
 }
+
+//Tray
+
 void CreateTrayIcon(HWND hDlg) {
 	nid.cbSize = sizeof(nid);
 	nid.hWnd = hDlg;
 	nid.uID = 0;
-	nid.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
+	nid.uFlags = NIF_ICON | NIF_MESSAGE | NIF_INFO | NIF_TIP;
 	nid.uCallbackMessage = WM_USER;
 	nid.hIcon = LoadIcon(hInst, MAKEINTRESOURCE(IDI_JIYUKILLER));
 	lstrcpy(nid.szTip, L"JY Killer");
 	Shell_NotifyIcon(NIM_ADD, &nid);
+}
+void ShowTrayBaloonTip(const wchar_t* title , const wchar_t* text) {
+	lstrcpy(nid.szInfo, text);
+	nid.dwInfoFlags = NIIF_NONE;
+	lstrcpy(nid.szInfoTitle, title);
+	Shell_NotifyIcon(NIM_MODIFY, &nid);
 }
 
 struct MainWindowDOMEventsHandlerType : htmlayout::event_handler
@@ -709,8 +804,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case WM_SYSCOMMAND: {
 			switch (wParam)
 			{
-			case SC_MINIMIZE: ShowWindow(hWnd, SW_HIDE);  break;
-			case SC_CLOSE: if (!controlled || MessageBox(hWnd, L"极域正在运行，退出本软件将导致极域脱离控制，您是否还要退出？", L"注意", MB_YESNO | MB_ICONEXCLAMATION) == IDYES) { isUserCancel = true;  XQuitApp(); } break;
+			case SC_RESTORE: ShowWindow(hWnd, SW_RESTORE); SetForegroundWindow(hWnd); break;
+			case SC_MINIMIZE: ShowWindow(hWnd, SW_MINIMIZE);  break;
+			case SC_CLOSE: {
+				ShowWindow(hWnd, SW_HIDE);
+				if (!hideTipShowed) {
+					ShowTrayBaloonTip(L"JiYu Killer 提示", L"窗口隐藏到此处了，双击这里显示主界面");
+					hideTipShowed = true;
+				}
+				break;
+			}
 			default: return DefWindowProc(hWnd, message, wParam, lParam);
 			}
 			break;

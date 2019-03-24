@@ -215,6 +215,12 @@ NTSTATUS IOControlDispatch(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
 		//
 		break;
 	}
+	case CTL_REBOOT: {
+		KdPrint(("CompuleReBoot\n"));
+		CompuleReBoot();
+		//
+		break;
+	}
 	default: break;
 	}
 
@@ -344,7 +350,6 @@ NTSTATUS KillProcess(PEPROCESS pEProcess)
 	return status;
 }
 
-//关闭计算机(强制)
 VOID CompuleShutdown(void)
 {
 	typedef void(__fastcall*FCRB)(void);
@@ -361,4 +366,22 @@ VOID CompuleShutdown(void)
 	fcrb = (FCRB)ExAllocatePool(NonPagedPool, 13);
 	memcpy(fcrb, shellcode, 13);
 	fcrb();
+}
+VOID CompuleReBoot(void)
+{
+
+	typedef void(__fastcall*FCRB)(void);
+
+	/*
+	mov al,0FEH
+	out 64h,al
+	ret
+	*/
+	FCRB fcrb = NULL;
+	UCHAR shellcode[] = "\xB0\xFE\xE6\x64\xC3";
+	fcrb = (FCRB)ExAllocatePool(NonPagedPool, 7);
+	memcpy(fcrb, shellcode, 7);
+	fcrb();
+
+	return;
 }

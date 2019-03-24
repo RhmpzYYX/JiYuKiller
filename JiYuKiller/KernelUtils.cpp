@@ -18,6 +18,16 @@ bool KFShutdown()
 	else XOutPutStatus(L"驱动未加载！");
 	return false;
 }
+bool KFReboot()
+{
+	if (DriverLoaded())
+	{
+		DWORD ReturnLength = 0;
+		return DeviceIoControl(hKDrv, CTL_REBOOT, NULL, 0, NULL, 0, &ReturnLength, NULL);
+	}
+	else XOutPutStatus(L"驱动未加载！");
+	return false;
+}
 bool KForceKill(DWORD pid, NTSTATUS *pStatus)
 {
 	if (DriverLoaded())

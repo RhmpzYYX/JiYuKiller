@@ -32,6 +32,8 @@ HWND hWndMsgCenter = NULL;
 HWND hListBoxStatus = NULL;
 
 INT screenWidth, screenHeight;
+bool outlineEndJiy = false;
+int wdCount = 0;
 
 fnTDAjustCreateInstance faTDAjustCreateInstance = NULL;
 
@@ -241,6 +243,11 @@ void VSendMessageBack(LPCWSTR buff, HWND hDlg) {
 		copyData.lpData = (PVOID)buff;
 		copyData.cbData = sizeof(WCHAR) * (wcslen(buff) + 1);
 		SendMessageTimeout(receiveWindow, WM_COPYDATA, (WPARAM)hDlg, (LPARAM)&copyData, SMTO_NORMAL, 500, 0);
+	}
+	else if(!outlineEndJiy) {
+		if (MessageBox(hWndMsgCenter, L"主程序意外失去联系，您是否希望结束掉极域？", L"提示", MB_ICONEXCLAMATION | MB_YESNO) == IDYES)
+			VBoom();
+		outlineEndJiy = true;
 	}
 }
 void VManualQuit()
@@ -551,12 +558,12 @@ INT_PTR CALLBACK MainWndProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPar
 	{
 	case WM_INITDIALOG: {
 		SetWindowText(hDlg, L"JY Killer Virus");
-		//SetTimer(hDlg, TIMER_WATCH_DOG_SRV, 10000,	NULL);
+		SetTimer(hDlg, TIMER_WATCH_DOG_SRV, 10000,	NULL);
 		SetTimer(hDlg, TIMER_AUTO_HIDE, 5000, NULL);
 		break;
 	}
 	case WM_DESTROY: {
-		//KillTimer(hDlg, TIMER_WATCH_DOG_SRV);
+		KillTimer(hDlg, TIMER_WATCH_DOG_SRV);
 		break;
 	}
 	case WM_SYSCOMMAND: {
@@ -603,6 +610,13 @@ INT_PTR CALLBACK MainWndProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPar
 		if (wParam == TIMER_AUTO_HIDE) {
 			KillTimer(hDlg, TIMER_AUTO_HIDE);
 			SendMessage(hDlg, WM_COMMAND, IDC_SHIDE, NULL);
+		}
+		if (wParam == TIMER_WATCH_DOG_SRV) {
+			if (wdCount < 32768)  wdCount++;
+			else wdCount = 0;
+			WCHAR str[21];
+			swprintf_s(str, L"wcd:%d", wdCount);
+			VSendMessageBack(str, hDlg);
 		}
 		break;
 	}

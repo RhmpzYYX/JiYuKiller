@@ -295,14 +295,12 @@ bool TForceKill()
 	}
 
 	FORCEKILL:
-	if (DriverLoaded() && MessageBox(hWndMain, L"普通无法结束极域，是否调用驱动结束极域？", L"提示", MB_ICONEXCLAMATION | MB_YESNO) == IDYES)
+	if (DriverLoaded() && MessageBox(hWndMain, L"普通无法结束极域，是否调用驱动结束极域？\n（驱动可能不稳定，请慎用。您也可以使用 PCHunter 等安全软件进行强杀）", L"提示", MB_ICONEXCLAMATION | MB_YESNO) == IDYES)
 	{
 		if (KForceKill(jiyuPid, &status))
 			return true;
 		else MessageBox(hWndMain, L"驱动也无法结束，请使用 PCHunter 结束它吧！", L"错误", MB_ICONEXCLAMATION);
 	}
-
-	FAIL:
 	CloseHandle(hProcess);
 	return false;
 }

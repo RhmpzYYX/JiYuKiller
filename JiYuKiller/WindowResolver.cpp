@@ -10,12 +10,15 @@ int screenWidth, screenHeight;
 bool lastHasGb = false, lastHasHp = false;
 int lastResolveWnd = 0;
 
+#define WS_EX_SIZED 0x10000000L
+
 bool setAutoIncludeFullWindow = false;
 
 WCHAR ckStatText[36];
 
 extern DWORD jiyuPid;
 
+bool WLastState() { return lastHasGb || lastHasHp; }
 LPWSTR WGetCkStatText() {
 	if (jiyuPid <= 4) return (LPWSTR)L"未发现极域进程";
 	else if (!lastHasGb && !lastHasHp) return (LPWSTR)L"未发现极域的非法窗口";
@@ -23,8 +26,6 @@ LPWSTR WGetCkStatText() {
 }
 bool WInitResolver() 
 {
-	EnableDebugPriv(SE_DEBUG_NAME);
-
 	screenWidth = GetSystemMetrics(SM_CXSCREEN);
 	screenHeight = GetSystemMetrics(SM_CYSCREEN);
 
@@ -108,11 +109,21 @@ void WFixWindow(HWND hWnd, LPWSTR text)
 	LONG oldLong = GetWindowLong(hWnd, GWL_EXSTYLE);
 	if ((oldLong & WS_EX_TOPMOST) == WS_EX_TOPMOST)
 	{
-		SetWindowLong(hWnd, GWL_EXSTYLE, oldLong^WS_EX_TOPMOST);
+		SetWindowLong(hWnd, GWL_EXSTYLE, oldLong ^ WS_EX_TOPMOST);
 		SetWindowPos(hWnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
 	}
 	//Set border and sizeable
 	SetWindowLong(hWnd, GWL_STYLE, GetWindowLong(hWnd, GWL_STYLE) | (WS_BORDER | WS_OVERLAPPEDWINDOW));
-	if(StrEqual(text, L"BlackScreen Window")) SetWindowPos(hWnd, 0, 0, 10, 10, 0, SWP_NOZORDER | SWP_NOMOVE | SWP_DRAWFRAME | SWP_NOACTIVATE);
-	else SetWindowPos(hWnd, 0, 0, 0, 0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOMOVE | SWP_DRAWFRAME | SWP_NOACTIVATE);
+	
+	if (StrEqual(text, L"BlackScreen Window")) 
+	{
+		oldLong = GetWindowLong(hWnd, GWL_EXSTYLE);
+		if ((oldLong & WS_EX_NOACTIVATE) != WS_EX_NOACTIVATE)
+		{
+			SetWindowLong(hWnd, GWL_EXSTYLE, oldLong | WS_EX_NOACTIVATE);
+			SetWindowPos(hWnd, 0, 20, 20, 90, 150, SWP_NOZORDER | SWP_DRAWFRAME | SWP_NOACTIVATE);
+		}
+	}
+
+	SetWindowPos(hWnd, 0, 0, 0, 0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOMOVE | SWP_DRAWFRAME | SWP_NOACTIVATE);
 }

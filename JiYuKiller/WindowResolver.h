@@ -1,6 +1,8 @@
 #pragma once
 #include "stdafx.h"
 
+bool WLastState();
+
 LPWSTR WGetCkStatText();
 
 bool WInitResolver();
